@@ -1,0 +1,118 @@
+
+<div class="container">
+    <div class="row">
+        <!-- Thông tin khách hàng bên trái -->
+        <div class="col-md-6">
+            <div class="customer-info">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Thông tin khách hàng</h3>
+                    <a href="/logout" class="btn btn-primary">Đăng xuất</a>
+                </div>
+                <form id="orderForm">
+                    <div class="form-group">
+                        <label for="customerName">Tên khách hàng</label>
+                        <input type="text" class="form-control" id="customerName" value="{{userInfo.username}}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerEmail">Email</label>
+                        <input type="text" class="form-control" id="customerEmail" value="{{userInfo.email}}" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="customerPhone">Số điện thoại</label>
+                        <input type="text" class="form-control" id="customerPhone" value="{{userInfo.phone}}" readonly>
+                    </div>      
+                </form>
+            </div>
+        </div>
+
+        <!-- Lịch sử mua hàng bên phải -->
+        <div class="col-md-6">
+            <div class="order-history">
+                <h4>Lịch sử mua hàng</h4>
+                {{#each order}}
+                <div class="order-item mb-4 p-3 border rounded">
+                    {{#each this.products}}
+                        <div class="order-product mb-2">
+                            <div class="order-status">
+                                <strong>Tên sản phẩm:</strong> {{this.name}}
+                            </div>
+                            <div class="order-status">
+                                <strong>Size:</strong> {{this.size}}
+                            </div>
+                            <div class="order-status">
+                                <strong>Số lượng:</strong> {{this.quantity}}
+                            </div>
+                        </div>
+                    {{/each}}
+                    <div class="order-shop mb-2">
+                        🛒 <strong>Giá: {{this.price}}</strong>
+                    </div>
+                    <div class="order-date mb-2">
+                        <strong>Thời gian đặt hàng:</strong>{{formatDate this.createdAt}}
+                    </div>
+                    <div class="order-date mb-2">
+                        <strong>Địa chỉ:</strong> {{this.address}}
+                    </div>
+                    <div class="order-status">
+                        <strong>Trạng thái:</strong> {{this.status}}
+                    </div>
+                    {{#if (eq this.status "chờ xác nhận")}}
+                        <div class="btn btn-danger" data-toggle="modal" data-id="{{this._id}}" data-target="#delete-order-modal">Hủy</div>
+                    {{/if}}
+                </div>
+                {{else}}
+                <div class="order-item mb-4 p-3 border rounded"> Bạn chưa mua hàng</div>
+                {{/each}}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{!-- Modal Xác Nhận Xóa --}}
+<div id="delete-order-modal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Hủy đơn hàng </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+        <button id="btn-delete-order" type="button" class="btn btn-danger">có</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{!-- Form Ẩn --}}
+<form name="delete-order-form" method="POST" style="display: none;">
+    <input type="hidden" name="_method" value="DELETE">
+</form>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var orderId;
+        var deleteForm = document.forms['delete-order-form'];
+        var btnDeleteOrder = document.getElementById('btn-delete-order'); // Đúng tên biến
+
+        // Khi modal được kích hoạt
+        $('#delete-order-modal').on('show.bs.modal', function (event) {
+            var button = $(event.relatedTarget);  // Lấy button đã kích hoạt modal
+            orderId = button.data('id');  // Lấy ID của đơn hàng
+        });
+
+        // Khi nhấn nút "Xóa" trong modal
+        btnDeleteOrder.onclick = function() { // Sửa tên biến thành btnDeleteOrder
+            deleteForm.action = '/admin/transaction/' + orderId + '?_method=DELETE';  // Đặt URL action của form
+            deleteForm.submit();  // Gửi form
+        };
+    });
+</script>
+

@@ -1,0 +1,88 @@
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký</title>
+    <style>
+        h2{
+            color: rgb(36, 198, 130);
+        }
+        body {
+            background-image: url('https://noithatnamviet.com/wp-content/uploads/2022/04/shop-giay-sneaker.jpg');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center; 
+        }
+        label{
+            color: aliceblue;
+        }
+    </style>
+</head>
+<body> 
+    
+    <form class="mt-4" id="form-register">
+        <div class="form-group">
+            <label for="username">Tên người dùng</label>
+            <input type="text" class="form-control" id="username" name="username" placeholder="Nguyễn Văn A.." required>
+        </div>
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" class="form-control" id="email" name="email" placeholder="nva@gmail.com" required>
+        </div>
+        <div class="form-group">
+            <label for="password">Mật khẩu</label>
+            <input type="password" class="form-control" id="password" name="password" placeholder="*****" required>
+        </div>
+        <div class="form-group">
+            <label for="phone">SĐT</label>
+            <input type="tel" class="form-control" id="phone" name="phone" placeholder="0123456789" required>
+        </div>
+        {{!-- <div class="form-group">
+            <label for="address">Địa chỉ</label>
+            <input type="text" class="form-control" id="address" name="address" placeholder="TP HCM...." required>
+        </div> --}}
+        <button type="submit" class="btn btn-primary btn-block">Đăng ký</button>
+    </form>
+    
+</body>
+
+<script>
+
+    $(document).ready(function () {
+        $("#form-register").submit(function(event){
+            event.preventDefault();
+
+            var username = $("#username").val()
+            var email = $("#email").val();
+            var password = $("#password").val();
+            var phone = $("#phone").val()
+
+            $.ajax({
+                url: "/signup",
+                method: "POST",
+                data: {
+                    username: $("#username").val(),
+                    email: $("#email").val(),
+                    password: $("#password").val(),
+                    phone: $("#phone").val()
+                },
+                success: function(response){
+                    if(response.message == 'success'){
+                        window.location.href = "/login";
+                    }
+                    else{
+                        window.location.href = "/register";
+                        alert(response.message)
+                    }
+                },
+                error: function() {
+                    alert("Đã xảy ra lỗi trong quá trình đăng nhập")
+                }
+            }) 
+        })
+    })
+</script>
+
