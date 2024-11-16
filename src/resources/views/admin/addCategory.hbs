@@ -1,0 +1,24 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <a class="navbar navbar-light bg-light" href="/admin/addProduct">Thêm sản phẩm </a>
+  <a class="navbar navbar-light bg-light" href="/admin/addCategory">Thêm loại sản phẩm </a>
+  <a class="navbar navbar-light bg-light" href="/admin/users">Thông tin người dùng</a>
+  <a class="navbar navbar-light bg-light" href="/admin/transaction">Đơn hàng</a>
+</nav>
+
+<div class="mt-4" style="padding: 40px;"; >
+    <h3>Thêm sản phẩm</h3>
+
+    <form method="post" action="/admin/addedCategory">
+        <div class="form-group">
+            <label for="name">Tên loại sản phẩm</label>
+            <input type="text" class="form-control" id="name" name="name" required>
+        </div>
+
+        <div class="form-group">
+            <label for="description">Mô tả</label>
+            <input type="text" class="form-control" id="description" name="description" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Thêm</button>
+    </form>
+</div>

@@ -1,0 +1,40 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <a class="navbar navbar-light bg-light" href="/admin/addProduct">Thêm sản phẩm </a>
+  <a class="navbar navbar-light bg-light" href="/admin/addCategory">Thêm loại sản phẩm </a>
+  <a class="navbar navbar-light bg-light" href="/admin/users">Thông tin người dùng</a>
+  <a class="navbar navbar-light bg-light" href="/admin/transaction">Đơn hàng</a>
+</nav>
+
+<table class="table mt-4">
+  <thead>
+    <tr>
+      <th scope="col" style="align-items: center;">STT</th>
+      <th scope="col" style="align-items: center;">Tên người dùng</th>
+      <th scope="col" style="align-items: center;">email</th>
+      <th scope="col" style="align-items: center;">role</th>
+      <th scope="col" style="align-items: center;">Ngày tạo</th>
+      <th scope="col" style="align-items: center;">sửa</th>
+      <th scope="col" style="align-items: center;">xóa</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each user}}
+    <tr>
+        <td style="align-items: center;">{{sum @index 1}}</th>
+        <td style="align-items: center;">{{this.username}}</td>
+        <td style="align-items: center;">{{this.email}}</td>
+        <td style="align-items: center;">{{this.role}}</td>
+        <td style="align-items: center;">{{this.createdAt}}</td>
+        <td style="align-items: center;">
+            <button type="submit" class="btn btn-success"><a href="/admin/users/{{this._id}}/edit" style="color: white"><span>Sửa</span></a></button>
+            
+        </td>
+        <td style="align-items: center;">
+            <button type="submit" class="btn btn-danger"><a href="/admin/users/{{this._id}}/delete" style="color: white"><span>Xóa</span></a></button>
+            
+        </td>
+    </tr>
+    {{/each}}
+   
+  </tbody>
+</table>

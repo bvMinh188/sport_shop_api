@@ -1,0 +1,91 @@
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-6">
+                <img src="{{product.image}}" alt="{{product.name}}" class="img-fluid" width="400px" height="auto">
+            </div>
+            <div class="col-md-6">
+                <h2>{{product.name}}</h2>
+                <span>Giá: {{formatPrince product.price}}</span>
+                <div class="add-to-cart mt-4">
+                    <form id="addOrder">
+                        <div class="form-group">
+                            <label for="size">Kích thước</label>
+                            <select class="form-control" id="size" name="size" required>
+                                <option value="" disabled selected>Chọn kích thước</option>
+                                {{#each product.sizes}}
+                                    <option value="{{this.size}}">{{this.size}}</option>
+                                {{/each}}
+                            </select>
+                            <label for="quantity">Số lượng</label>
+                            <input type="number" class="form-control" id="quantity" name="quantity" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">Thêm vào giỏ hàng</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="product-description mt-4">
+                <h4>Mô tả sản phẩm</h4>
+                <p>{{product.description}}</p>
+            </div>
+
+
+    <div class="related-products">
+    <h3>Sản phẩm Gợi ý</h3>
+    <div class="row">
+        {{#each products}}
+        <div class="col-sm-2 col-lg-2 product-item mb-4">
+            <div class="card card-product-item">
+                <a href="/{{this.slug}}">
+                    <img src="{{this.image}}" class="image-container" alt="{{this.name}}">
+                </a>
+                <div class="card-body">
+                    <a href="/{{this.slug}}">
+                        <h5 class="card-title">{{this.name}}</h5>
+                    </a>
+                    <p class="fs-1">{{formatPrince this.price}}</p>
+                </div>
+            </div>
+        </div>
+        {{/each}}
+    </div>
+</div>
+
+</body>
+
+
+
+<script>
+    $(document).ready(function() {
+        $("#addOrder").submit(function(event){
+            event.preventDefault();
+
+            const size = $("#size").val();
+            const quantity = $("#quantity").val();
+            const idProduct = "{{product._id}}";
+
+            $.ajax({
+                url: `/order/${idProduct}`,
+                method: "POST",
+                data: {
+                    size: size,
+                    quantity: quantity
+                },
+                success: function(response){
+                    if(response.message === 'Thêm thành công' || response.message === 'Cập nhật giỏ hàng thành công'){
+                        window.location.reload();
+                        alert(response.message);
+                    } else {
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert("Sản phẩm không có đủ số lượng");
+                }
+            });
+        });
+    });
+</script>

@@ -1,0 +1,96 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Ký</title>
+    <style>
+        h2{
+            color: rgb(36, 198, 130);
+        }
+        body {
+            background-image: url('https://noithatnamviet.com/wp-content/uploads/2022/04/shop-giay-sneaker.jpg');
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center; 
+        }
+        label{
+            color: aliceblue;
+        }
+    </style>
+</head>
+
+<form class="mt-4" id="form-login">
+    <div class="mb-3">
+        <label for="email">Email</label>
+        <input type="email" class="form-control" id="email" name="email" placeholder="nva@gmail.com" required>
+    </div>
+    <div class="mb-3">
+        <label for="password">Mật khẩu</label>
+        <input type="password" class="form-control" id="password" name="password" placeholder="*****" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Đăng nhập</button>
+    <div class="text-center mt-2">
+        <a href="">Quên mật khẩu?</a><br>
+        <a href="/register">Chưa có tài khoản? Đăng ký</a>
+    </div>
+</form>
+
+<script>
+    function setCookie(cname, cvalue, exdays) {
+        const d = new Date();
+        d.setTime(d.getTime() + (exdays*24*60*60*1000));
+        let expires = "expires="+ d.toUTCString();
+        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+    }
+
+    function getCookie(cname) {
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(';');
+        for(let i = 0; i <ca.length; i++) {
+            let c = ca[i];
+            while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+
+    $(document).ready(function () {
+        $("#form-login").submit(function(event){
+            event.preventDefault();
+
+            var email = $("#email").val();
+            var password = $("#password").val()
+
+            $.ajax({
+                url: "/logined",
+                method: "POST",
+                data: {
+                    email: $("#email").val(),
+                    password: $("#password").val()
+                },
+                success: function(response){
+                    if(response.message == 'admin'){
+                        setCookie('token', response.token, 1);
+                        window.location.href = "/admin";
+                    }else if(response.message == 'user'){
+                        setCookie('token', response.token, 1);
+                        window.location.href = "/";
+                    }else{
+                        alert(response.message);
+                    }
+                },
+                error: function() {
+                    alert("Đã xảy ra lỗi trong quá trình đăng nhập")
+                }
+            }) 
+        })
+    })
+</script>
+       
