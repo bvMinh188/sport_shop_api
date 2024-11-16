@@ -24,14 +24,14 @@
         <td style="align-items: center;">{{this.username}}</td>
         <td style="align-items: center;">{{this.email}}</td>
         <td style="align-items: center;">{{this.role}}</td>
-        <td style="align-items: center;">{{this.createdAt}}</td>
+        <td style="align-items: center;">{{formatDate this.createdAt}}</td>
         <td style="align-items: center;">
             <button type="submit" class="btn btn-success"><a href="/admin/users/{{this._id}}/edit" style="color: white"><span>Sửa</span></a></button>
             
         </td>
         <td style="align-items: center;">
             <button type="submit" class="btn btn-danger"><a href="/admin/users/{{this._id}}/delete" style="color: white"><span>Xóa</span></a></button>
-            
+           
         </td>
     </tr>
     {{/each}}

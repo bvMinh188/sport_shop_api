@@ -110,7 +110,7 @@ class SiteController {
             .then(products => {
                 const categories = [...new Set(products.map(product => product.category))];
 
-                res.render('admin/admin',{
+                res.render('home',{
                     categories: categories,
                     products: mutipleMongooseToObject(products),  
                 });
