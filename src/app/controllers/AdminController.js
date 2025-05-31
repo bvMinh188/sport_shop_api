@@ -8,24 +8,41 @@ const { mongooseToObject, mutipleMongooseToObject } = require('../../util/mongoo
 
 class AdminController{
     //[Get] /admin
-    storedProducts(req, res, next){
-        let productQuery = Product.find({});
-        if (req.query.hasOwnProperty('_sort')){
-            productQuery = productQuery.sort({
-                price: req.query.price
-            })
-        }
-        productQuery
-            .then(products => {
-                const categories = [...new Set(products.map(product => product.category))];
-
-                res.render('admin/admin',{
+    storedProducts(req, res, next) {
+            let page = parseInt(req.query.page) || 1;
+            let limit = 12;
+            let skip = (page - 1) * limit;
+        
+            let filter = {};
+            if (req.query.category) {
+                filter.category = req.query.category;
+            }
+        
+            let productQuery = Product.find(filter);
+        
+            if (req.query._sort) {
+                productQuery = productQuery.sort({ price: req.query._sort });
+            }
+        
+            Promise.all([
+                productQuery.skip(skip).limit(limit),
+                Product.countDocuments(filter),
+                Product.distinct("category")
+            ])
+            .then(([products, totalProducts, categories]) => {
+                const totalPages = Math.ceil(totalProducts / limit);
+        
+                res.render('admin/admin', {
                     categories: categories,
-                    products: mutipleMongooseToObject(products),  // Sử dụng tên hàm đúng
+                    products: mutipleMongooseToObject(products),
+                    currentPage: page,
+                    totalPages: totalPages,
+                    selectedCategory: req.query.category || null,
+                    _sort: req.query._sort || "",
                 });
             })
-            .catch(next);        
-    }
+            .catch(next);
+        }
 
     //[Get] /admin/addProduct
     addProduct(req, res, next) {

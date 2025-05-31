@@ -30,10 +30,10 @@
         <label for="password">Mật khẩu</label>
         <input type="password" class="form-control" id="password" name="password" placeholder="*****" required>
     </div>
-    <button type="submit" class="btn btn-primary">Đăng nhập</button>
-    <div class="text-center mt-2">
-        <a href="">Quên mật khẩu?</a><br>
-        <a href="/register">Chưa có tài khoản? Đăng ký</a>
+    <button type="submit" class="btn btn-danger w-100">Đăng nhập</button>
+    <div class="text-center mt-3">
+        <p>Chưa có tài khoản? <a href="/register" class="text-danger">Đăng ký ngay</a></p>
+        <p><a href="/forgot-password" class="text-danger">Quên mật khẩu?</a></p>
     </div>
 </form>
 
@@ -77,10 +77,8 @@
                 },
                 success: function(response){
                     if(response.message == 'admin'){
-                        setCookie('token', response.token, 1);
                         window.location.href = "/admin";
                     }else if(response.message == 'user'){
-                        setCookie('token', response.token, 1);
                         window.location.href = "/";
                     }else{
                         alert(response.message);

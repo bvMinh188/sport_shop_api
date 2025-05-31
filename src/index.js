@@ -51,22 +51,38 @@ app.use(morgan("combined"));
 app.engine("hbs", handlebars.engine({
   extname: '.hbs',
   helpers: {
+    // So sánh bằng (==)
     eq: function (a, b) {
       return a === b;
     },
-    sum: (a, b) => a + b,
-    formatPrince: (a) => {
-      if (a == null) {  // Kiểm tra giá trị null hoặc undefined
-        return "Không có giá";  
-      }
-      return a.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VND"; // Định dạng giá với dấu phẩy
+    not: function (a) {
+      return !a;
     },
+    or: function (a, b) {
+      return a || b;
+    },
+    sum: (a, b) => a + b,
+    subtract: (a, b) => a - b,
+    gt: (a, b) => a > b,
+    lt: (a, b) => a < b,
+    range: function (start, end) {
+      let list = [];
+      for (let i = start; i <= end; i++) list.push(i);
+      return list;
+    },
+    // Định dạng giá tiền (VD: 1.000.000 VND)
+    formatPrince: (a) => {
+      if (a == null) return "Không có giá";  
+      return a.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VND";
+    },
+    // Tính tổng số lượng từ danh sách sizes
     totalQuantity: function(sizes) {
       return sizes.reduce((total, size) => total + size.quantity, 0);
     },
+    // Định dạng ngày tháng theo giờ Việt Nam
     formatDate: function(datetime){
       return new Date(datetime).toLocaleString('vi-VN', {
-          timeZone: 'Asia/Ho_Chi_Minh', // Giờ Việt Nam
+          timeZone: 'Asia/Ho_Chi_Minh',
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
@@ -75,8 +91,22 @@ app.engine("hbs", handlebars.engine({
           second: '2-digit',
       });
     },
+    // Chuyển đối tượng thành chuỗi JSON
     json: function (context) {
-      return JSON.stringify(context);  // Chuyển đối tượng thành chuỗi JSON
+      return JSON.stringify(context);
+    },
+    // Kiểm tra nếu giá trị lớn hơn hoặc bằng ngưỡng (>=)
+    ifGreaterOrEqual: function (value, threshold, options) {
+      return value >= threshold ? options.fn(this) : options.inverse(this);
+    },
+    findDefaultAddress: (addresses) => {
+      if (!addresses || addresses.length === 0) return null;
+      return addresses.find(addr => addr.isDefault) || addresses[0];
+    },
+    // Lấy địa chỉ từ đơn hàng
+    getOrderAddress: function(order) {
+      if (!order || !order.address) return '';
+      return order.address;
     }
   }
 }));

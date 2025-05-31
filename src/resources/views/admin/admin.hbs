@@ -5,28 +5,29 @@
   <a class="navbar navbar-light bg-light" href="/admin/transaction">Đơn hàng</a>
 </nav>
 
-<div class="hero-image">
-    <img src="https://theme.hstatic.net/1000288768/1000753028/14/home_slider_image_4.jpg?v=4353" alt="Banner Image" class="img-fluid">
-</div>
-
-
 <div class="container mt-4">
     <h1 class="text-center">GIÀY THỂ THAO</h1>
 
-    <!-- Category Buttons -->
+    <!-- Nút lọc danh mục -->
     <div class="text-center mb-4">
+        <a href="?" class="btn btn-outline-success {{#unless selectedCategory}}active{{/unless}}">
+            Tất Cả
+        </a>
         {{#each categories}}
-            <button class="btn btn-outline-success filter-btn" data-category="{{this}}">{{this}}</button>
+            <a href="#" class="btn btn-outline-success category-filter {{#if (eq this ../selectedCategory)}}active{{/if}}" data-category="{{this}}">
+                {{this}}
+            </a>
         {{/each}}
     </div>
 
+    <!-- Nút lọc theo giá -->
     <div class="btn-group">
-        <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-            sắp xếp theo
+        <button type="button" id="filterButton" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            Lọc
         </button>
         <ul class="dropdown-menu dropdown-menu-end">
-            <li><a href="?_sort&price=asc" class="dropdown-item" type="button">giá tăng dần</a></li>
-            <li><a href="?_sort&price=desc" class="dropdown-item" type="button">giá giảm dần</a></li>
+            <li><a href="#" class="dropdown-item price-filter" data-sort="asc">Giá tăng dần</a></li>
+            <li><a href="#" class="dropdown-item price-filter" data-sort="desc">Giá giảm dần</a></li>
         </ul>
     </div>
 
@@ -51,6 +52,28 @@
         {{/each}}
     </div>
 
+    <!-- Pagination -->
+    <div class="pagination-container text-center mt-4">
+        <ul class="pagination">
+            {{#if (gt currentPage 1)}}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{subtract currentPage 1}}">❮</a>
+                </li>
+            {{/if}}
+
+            {{#each (range 1 totalPages)}}
+                <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
+                    <a class="page-link pagination-link" data-page="{{this}}">{{this}}</a>
+                </li>
+            {{/each}}
+
+            {{#if (lt currentPage totalPages)}}
+                <li class="page-item">
+                    <a class="page-link pagination-link" data-page="{{sum currentPage 1}}">❯</a>
+                </li>
+            {{/if}}
+        </ul>
+    </div>
 </div>
 
 {{!-- Modal Xác Nhận Xóa --}}
@@ -82,6 +105,57 @@
 
 
 <script>
+    function updateURL(param, value) {
+        let url = new URL(window.location.href);
+        if (value) {
+            url.searchParams.set(param, value);
+        } else {
+            url.searchParams.delete(param);
+        }
+        window.location.href = url.toString();
+    }
+
+    // Bắt sự kiện lọc theo danh mục
+    document.querySelectorAll(".category-filter").forEach(button => {
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            updateURL("category", this.dataset.category);
+        });
+    });
+
+    // Bắt sự kiện lọc theo giá
+    document.querySelectorAll(".price-filter").forEach(button => {
+        button.addEventListener("click", function (e) {
+            e.preventDefault();
+            updateURL("_sort", this.dataset.sort);
+        });
+    });
+
+    // Bắt sự kiện phân trang
+    document.querySelectorAll(".pagination-link").forEach(link => {
+        link.addEventListener("click", function (e) {
+            e.preventDefault();
+            updateURL("page", this.dataset.page);
+        });
+    });
+
+    // Cập nhật nội dung nút lọc theo giá khi trang tải lại
+    function updateFilterButtonText() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const sortValue = urlParams.get('_sort');
+        const button = document.getElementById("filterButton");
+
+        if (sortValue === 'asc') {
+            button.textContent = "Giá tăng dần";
+        } else if (sortValue === 'desc') {
+            button.textContent = "Giá giảm dần";
+        } else {
+            button.textContent = "Lọc";
+        }
+    }
+
+    updateFilterButtonText();
+
     document.addEventListener('DOMContentLoaded', function() {
         var productId;
         var deleteForm = document.forms['delete-product-form'];
@@ -129,6 +203,5 @@
 
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 

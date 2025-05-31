@@ -11,31 +11,39 @@ const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
 
 // Middleware kiểm tra đăng nhập
 var checkLogin = (req, res, next) => {
-    var token = req.cookies?.token;
+    const token = req.cookies?.token;
+
     if (!token) {
-        // Nếu không có token, chuyển hướng đến trang đăng nhập
-        return res.redirect('/');
-    } else {
-        try {
-            // Xác minh token
-            var idUser = jwt.verify(token, SECRET_CODE);
-            User.findOne({ _id: idUser._id })
-                .then(data => {
-                    if (!data) {
-                        // Nếu không tìm thấy người dùng, chuyển hướng đến trang đăng nhập
-                        return res.redirect('/');
-                    }
-                    req.data = data;
-                    next();
-                })
-                .catch(err => {
-                    console.log("Database error:", err.message);
-                    return res.redirect('/');
-                });
-        } catch (err) {
-            console.log("Invalid token:", err.message);
-            return res.redirect('/');
-        }
+        res.locals.user = null;
+        return next();
+    }
+
+    try {
+        const decoded = jwt.verify(token, SECRET_CODE);
+        User.findById(decoded._id)
+            .then(user => {
+                if (user) {
+                    req.data = user;
+                    res.locals.user = {
+                        _id: user._id,
+                        name: user.name,
+                        email: user.email,
+                        role: user.role
+                    };
+                } else {
+                    res.locals.user = null;
+                }
+                next();
+            })
+            .catch(err => {
+                console.error("Lỗi khi tìm user:", err.message);
+                res.locals.user = null;
+                next();
+            });
+    } catch (err) {
+        console.error("Lỗi verify token:", err.message);
+        res.locals.user = null;
+        next();
     }
 };
 
@@ -44,17 +52,18 @@ var checkUser = (req, res, next) => {
     if (req.data) {
         var role = req.data.role;
         if (role === 'admin') {
-            // Chỉ cho phép admin truy cập
+            // Cho phép tiếp tục
             next();
         } else {
-            // Nếu không phải admin, chuyển hướng về trang chủ
-            res.redirect('/');
+            // Không phải admin → cấm truy cập
+            return res.redirect('/');
         }
     } else {
-        // Nếu không có dữ liệu người dùng, chuyển hướng về trang đăng nhập
-        res.redirect('/');
+        // Không có thông tin người dùng → cấm truy cập
+        return res.redirect('/');
     }
 };
+
 
 router.get('/admin/addProduct',checkLogin, checkUser, adminController.addProduct);
 router.post('/admin/added',checkLogin, checkUser, adminController.added);

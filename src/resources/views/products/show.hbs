@@ -9,17 +9,28 @@
                 <span>Giá: {{formatPrince product.price}}</span>
                 <div class="add-to-cart mt-4">
                     <form id="addOrder">
-                        <div class="form-group">
-                            <label for="size">Kích thước</label>
-                            <select class="form-control" id="size" name="size" required>
-                                <option value="" disabled selected>Chọn kích thước</option>
-                                {{#each product.sizes}}
-                                    <option value="{{this.size}}">{{this.size}}</option>
-                                {{/each}}
-                            </select>
-                            <label for="quantity">Số lượng</label>
-                            <input type="number" class="form-control" id="quantity" name="quantity" required>
+                        <input type="hidden" id="size" name="size">
+                        <div class="size-options">
+                            {{#each product.sizes}}
+                                <button type="button" class="btn btn-outline-dark size-btn" 
+                                    onclick="handleSizeClick({{this.size}}, {{this.quantity}})"
+                                    data-size="{{this.size}}" 
+                                    data-quantity="{{this.quantity}}"
+                                    {{#if (eq this.quantity 0)}}disabled{{/if}}>
+                                    {{this.size}}
+                                </button>
+                            {{/each}}
                         </div>
+
+                        <div class="quantity-container mt-3">
+                            <label for="quantity">Số Lượng</label>
+                            <div class="d-flex align-items-center">
+                                <input type="number" id="quantity" name="quantity" value="1" min="1" class="form-control text-center mx-2" style="width: 60px;">
+                                
+                                <span class="ms-2 text-muted available-quantity" id="valueSize"></span>
+                            </div>
+                        </div>
+
                         <button type="submit" class="btn btn-success">Thêm vào giỏ hàng</button>
                     </form>
                 </div>
@@ -28,10 +39,13 @@
     </div>
 
     <div class="product-description mt-4">
-                <h4>MÔ TẢ SẢN PHẨM</h4>
-                <p>{{product.description}}</p>
-            </div>
+        <h4>MÔ TẢ SẢN PHẨM</h4>
+        <p>{{product.description}}</p>
+    </div>
 
+    <div id="toastContainer">
+        <div id="toastMessage" class="toast-body text-white"></div>
+    </div>
 
     <div class="related-products">
     <h3>SẢN PHẨM TƯƠNG TỰ</h3>
@@ -60,32 +74,76 @@
 
 <script>
     $(document).ready(function() {
-        $("#addOrder").submit(function(event){
-            event.preventDefault();
+        function showToast(message, type = "success") {
+            console.log("showToast called:", message, type); // Kiểm tra hàm có chạy không
+            const toast = $("#toastContainer");
+            const toastMessage = $("#toastMessage");
 
-            const size = $("#size").val();
-            const quantity = $("#quantity").val();
-            const idProduct = "{{product._id}}";
+            toastMessage.text(message);
+            toast.css("background", type === "success" ? "rgba(40, 167, 69, 0.9)" : "rgba(220, 53, 69, 0.9)");
 
-            $.ajax({
-                url: `/order/${idProduct}`,
-                method: "POST",
-                data: {
-                    size: size,
-                    quantity: quantity
-                },
-                success: function(response){
-                    if(response.message === 'Thêm thành công' || response.message === 'Cập nhật giỏ hàng thành công'){
-                        window.location.reload();
-                        alert(response.message);
-                    } else {
-                        alert(response.message);
-                    }
-                },
-                error: function() {
-                    alert("Sản phẩm không có đủ số lượng");
+            // Hiển thị
+            toast.css({ visibility: "visible", opacity: 1 });
+
+            // Ẩn sau 0.5s
+            setTimeout(() => {
+                toast.css({ visibility: "hidden", opacity: 0 });
+            }, 3000);
+        }
+
+    $("#addOrder").submit(function(event){
+        event.preventDefault();
+
+        const size = $("#size").val();
+        const quantity = $("#quantity").val();
+        const idProduct = "{{product._id}}";
+
+        // Kiểm tra nếu chưa chọn size
+        if (!size) {
+            showToast("Vui lòng chọn size trước khi thêm vào giỏ hàng!", "danger");
+            return;
+        }
+
+        $.ajax({
+            url: `/order/${idProduct}`,
+            method: "POST",
+            data: { size: size, quantity: quantity },
+            success: function(response) {
+                console.log("Success Response:", response);
+                showToast(response.message, "success");
+                if (response.message === 'Thêm thành công' || response.message === 'Cập nhật giỏ hàng thành công') {
+                    setTimeout(() => window.location.reload(), 1500);
                 }
-            });
+            },
+            error: function(xhr) {
+                console.log("Error Response:", xhr.responseJSON);
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    showToast(xhr.responseJSON.message, "danger");
+                } else {
+                    showToast("Đã xảy ra lỗi. Vui lòng thử lại sau.", "danger");
+                }
+            }
         });
     });
+
+    $("#quantity").on("input", function () {
+        const max = $(this).attr("max");
+        let val = parseInt($(this).val());
+
+        if (val > max) {
+            $(this).val(max);
+        } else if (val < 1 || isNaN(val)) {
+            $(this).val(1);
+        }
+    });
+});
+
+    function handleSizeClick(size, quantity) {
+        document.getElementById("valueSize").innerText = `Còn lại: ${quantity}`;
+        document.getElementById("size").value = size;
+
+        const quantityInput = document.getElementById("quantity");
+        quantityInput.max = quantity;
+        quantityInput.value = 1;
+    }
 </script>

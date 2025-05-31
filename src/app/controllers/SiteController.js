@@ -5,6 +5,8 @@ const order = require('../models/Order')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const dotenv = require('dotenv')
+const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../../util/mailjet');
 dotenv.config()
 
 const axios = require('axios');
@@ -65,22 +67,28 @@ class SiteController {
     //[post] /logined
     logined(req, res, next) {
         const { email, password } = req.body;
-    
+
         User.findOne({ email: email })
             .then(userByEmail => {
                 if (!userByEmail) {
                     return res.json({ message: 'tài khoản không tồn tại' });
                 }
-    
-                // So sánh mật khẩu đã nhập với mật khẩu trong cơ sở dữ liệu
+
                 bcrypt.compare(password, userByEmail.password)
                     .then(isMatch => {
                         if (isMatch) {
-                            // Nếu mật khẩu đúng
                             const token = jwt.sign({ _id: userByEmail._id }, SECRET_CODE);
-                            return res.json({ message: userByEmail.role, token: token });
+                            
+                            // Set cookie ở đây
+                            res.cookie('token', token, {
+                                httpOnly: true,
+                                maxAge: 24 * 60 * 60 * 1000, // 1 ngày
+                                sameSite: 'Lax',
+                                secure: false // Chuyển thành true nếu dùng HTTPS
+                            });
+
+                            return res.json({ message: userByEmail.role }); // Không gửi token về client nữa
                         } else {
-                            // Nếu mật khẩu sai
                             return res.json({ message: 'sai mật khẩu' });
                         }
                     })
@@ -96,37 +104,79 @@ class SiteController {
     }
 
 
-
       
     //[Get] /
     index(req, res, next) {
-        let productQuery = Product.find({});
-        if (req.query.hasOwnProperty('_sort')){
-            productQuery = productQuery.sort({
-                price: req.query.price
-            })
+        let page = parseInt(req.query.page) || 1;
+        let limit = 12;
+        let skip = (page - 1) * limit;
+    
+        let filter = {};
+        if (req.query.category) {
+            filter.category = req.query.category;
         }
-        productQuery
-            .then(products => {
-                const categories = [...new Set(products.map(product => product.category))];
-
-                res.render('home',{
-                    categories: categories,
-                    products: mutipleMongooseToObject(products),  
-                });
-            })
-            .catch(next); 
+    
+        let productQuery = Product.find(filter);
+    
+        if (req.query._sort) {
+            productQuery = productQuery.sort({ price: req.query._sort });
+        }
+    
+        Promise.all([
+            productQuery.skip(skip).limit(limit),
+            Product.countDocuments(filter),
+            Product.distinct("category"),
+            Product.find().sort({ sold: -1 }).limit(4) // Lấy top 4 sản phẩm bán chạy nhất
+        ])
+        .then(([products, totalProducts, categories, topProducts]) => {
+            const totalPages = Math.ceil(totalProducts / limit);
+    
+            res.render('home', {
+                categories: categories,
+                products: mutipleMongooseToObject(products),
+                topProducts: mutipleMongooseToObject(topProducts), // Truyền top products vào view
+                currentPage: page,
+                totalPages: totalPages,
+                selectedCategory: req.query.category || null,
+                _sort: req.query._sort || "",
+            });
+        })
+        .catch(next);
     }
 
 
     //[Get] /:slug
     showProduct(req, res, next) {
         const slug = req.params.slug;
-        Product.findOne({ slug: slug }).lean()
-            .then((product) => {
+        const token = req.cookies.token;
+        let userInfo = null;
+
+        // Kiểm tra và lấy thông tin user nếu đã đăng nhập
+        const getUserInfo = token ? 
+            new Promise((resolve) => {
+                try {
+                    const decodeToken = jwt.verify(token, SECRET_CODE);
+                    User.findById(decodeToken._id)
+                        .lean()
+                        .then(user => resolve(user))
+                        .catch(() => resolve(null));
+                } catch (err) {
+                    resolve(null);
+                }
+            })
+            : Promise.resolve(null);
+
+        Promise.all([
+            Product.findOne({ slug: slug }).lean(),
+            getUserInfo
+        ])
+            .then(([product, user]) => {
                 if (!product) {
                     console.error(`Không tìm thấy sản phẩm với slug: ${slug}`);
-                    return res.status(404).render('errors/404', { message: "Không tìm thấy sản phẩm." });
+                    return res.status(404).render('errors/404', { 
+                        message: "Không tìm thấy sản phẩm.",
+                        user: user
+                    });
                 }
     
                 const apiUrl = `http://localhost:5555/api?id=${product._id.toString()}`;
@@ -142,7 +192,8 @@ class SiteController {
                                 .then((suggestedProducts) => {
                                     res.render('products/show', {
                                         product: product,
-                                        products: suggestedProducts
+                                        products: suggestedProducts,
+                                        user: user // Truyền thông tin user vào view
                                     });
                                 })
                                 .catch((err) => {
@@ -153,7 +204,8 @@ class SiteController {
                             console.error("Dữ liệu sản phẩm gợi ý không hợp lệ:", response.data);
                             res.render('products/show', {
                                 product: product,
-                                products: []
+                                products: [],
+                                user: user // Truyền thông tin user vào view
                             });
                         }
                     })
@@ -161,7 +213,8 @@ class SiteController {
                         console.error("Lỗi khi lấy dữ liệu sản phẩm gợi ý từ API:", error.message);
                         res.render('products/show', {
                             product: product,
-                            products: []
+                            products: [],
+                            user: user // Truyền thông tin user vào view
                         });
                     });
             })
@@ -386,9 +439,10 @@ class SiteController {
                             return res.redirect('/login'); 
                         }
                         Order.find({ userId: decodeToken._id })
+                            .sort({ createdAt: -1 }) // Sắp xếp theo thời gian tạo giảm dần (mới nhất lên đầu)
                             .then(order => {
                                 res.render('user/profile', {
-                                    userInfo: mongooseToObject(userInfo), // Truyền thông tin người dùng vào view
+                                    userInfo: mongooseToObject(userInfo),
                                     order: mutipleMongooseToObject(order)
                                 });
                             })
@@ -404,61 +458,325 @@ class SiteController {
     }
 
     //[Post] /checkout
-    checkout(req, res, next) {
+    async checkout(req, res, next) {
         const { address, price } = req.body;
         const token = req.cookies?.token;
     
-        if (token) {
-            try {
-                const decodeToken = jwt.verify(token, SECRET_CODE);
-                Cart.find({ userId: decodeToken._id })
-                    .then(cartItems => {
-                        const products = cartItems.map(item => ({
-                            name: item.name,
-                            image: item.image,
-                            size: item.size,
-                            quantity: item.quantity
-                        }));
-    
-                        // Tạo một đơn hàng mới
-                        const newOrder = new Order({
-                            userId: decodeToken._id,
-                            products: products,
-                            address: address,
-                            price: price,
-                            status: 'chờ xác nhận',
-                        });
+        if (!token) {
+            return res.redirect('/login');
+        }
 
-                        newOrder.save()
-                            .then(order => {
-                                // Xóa giỏ hàng sau khi đặt hàng thành công
-                                Cart.deleteMany({ userId: decodeToken._id })
-                                    .then(() => {
-                                        res.json({ message: 'success', order });
-                                    })
-                                    .catch(err => {
-                                        console.error("Lỗi khi xóa giỏ hàng:", err);
-                                        res.status(500).json({ message: 'Đã xảy ra lỗi khi xóa giỏ hàng' });
-                                    });
-                            })
-                            .catch(err => {
-                                console.error("Lỗi khi lưu đơn hàng:", err);
-                                res.status(500).json({ message: 'Đã xảy ra lỗi khi lưu đơn hàng' });
-                            });
-                    })
-                    .catch(err => {
-                        console.error("Lỗi khi lấy giỏ hàng:", err);
-                        res.status(500).json({ message: 'Đã xảy ra lỗi khi lấy giỏ hàng' });
-                    });
-            } catch (err) {
-                console.error("Lỗi xác thực token:", err);
-                res.redirect('/login');
+        try {
+            const decodeToken = jwt.verify(token, SECRET_CODE);
+            
+            // If no address provided, try to get default address
+            if (!address) {
+                const user = await User.findById(decodeToken._id);
+                const defaultAddress = user.addresses.find(addr => addr.isDefault) || user.addresses[0];
+                if (!defaultAddress) {
+                    return res.status(400).json({ message: 'Vui lòng chọn địa chỉ giao hàng' });
+                }
+                req.body.address = defaultAddress.address;
             }
-        } else {
-            res.redirect('/login');
+
+            const cartItems = await Cart.find({ userId: decodeToken._id });
+            if (!cartItems.length) {
+                return res.status(400).json({ message: 'Giỏ hàng trống' });
+            }
+
+            const products = cartItems.map(item => ({
+                name: item.name,
+                image: item.image,
+                size: item.size,
+                quantity: item.quantity
+            }));
+
+            // Tạo một đơn hàng mới
+            const newOrder = new Order({
+                userId: decodeToken._id,
+                products: products,
+                address: req.body.address,
+                price: price,
+                status: 'chờ xác nhận',
+            });
+
+            // Cập nhật số lượng đã bán cho từng sản phẩm
+            const updateSoldPromises = cartItems.map(item => {
+                return Product.findOneAndUpdate(
+                    { name: item.name },
+                    { $inc: { sold: item.quantity } }
+                );
+            });
+
+            const [order] = await Promise.all([newOrder.save(), ...updateSoldPromises]);
+            
+            // Xóa giỏ hàng sau khi đặt hàng thành công
+            await Cart.deleteMany({ userId: decodeToken._id });
+            
+            res.json({ message: 'success', order });
+        } catch (err) {
+            console.error("Lỗi trong quá trình checkout:", err);
+            if (err.name === 'JsonWebTokenError') {
+                return res.redirect('/login');
+            }
+            res.status(500).json({ message: 'Đã xảy ra lỗi trong quá trình đặt hàng' });
         }
     }
     
+    //[Post] /add-address
+    async addAddress(req, res, next) {
+        try {
+            const token = req.cookies.token;
+            if (!token) {
+                return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+            }
+
+            const decodeToken = jwt.verify(token, SECRET_CODE);
+            const { name, address, isDefault } = req.body;
+
+            // Validate input
+            if (!name || !address) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: 'Vui lòng nhập đầy đủ thông tin địa chỉ' 
+                });
+            }
+
+            // Log để debug
+            console.log('Received data:', { name, address, isDefault });
+
+            const user = await User.findById(decodeToken._id);
+            if (!user) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Không tìm thấy người dùng' 
+                });
+            }
+
+            // Nếu địa chỉ mới được đặt làm mặc định, bỏ mặc định của các địa chỉ khác
+            if (isDefault) {
+                user.addresses.forEach(addr => {
+                    addr.isDefault = false;
+                });
+            }
+
+            // Thêm địa chỉ mới
+            user.addresses.push({
+                name,
+                address,
+                isDefault: isDefault || user.addresses.length === 0 // Nếu là địa chỉ đầu tiên, đặt làm mặc định
+            });
+
+            await user.save();
+
+            // Log để debug
+            console.log('Updated user:', user);
+
+            res.json({ 
+                success: true, 
+                message: 'Thêm địa chỉ thành công',
+                address: user.addresses[user.addresses.length - 1] // Trả về địa chỉ vừa thêm
+            });
+        } catch (err) {
+            console.error('Error in addAddress:', err);
+            res.status(500).json({ 
+                success: false, 
+                message: 'Có lỗi xảy ra khi thêm địa chỉ',
+                error: err.message 
+            });
+        }
+    }
+
+    //[Post] /set-default-address
+    async setDefaultAddress(req, res) {
+        try {
+            const token = req.cookies.token;
+            if (!token) {
+                return res.status(401).json({ success: false, message: 'Chưa đăng nhập' });
+            }
+
+            const decodeToken = jwt.verify(token, SECRET_CODE);
+            const { addressId } = req.body;
+
+            const user = await User.findById(decodeToken._id);
+            if (!user) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Không tìm thấy người dùng' 
+                });
+            }
+
+            // Validate addressId
+            if (addressId < 0 || addressId >= user.addresses.length) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Địa chỉ không hợp lệ'
+                });
+            }
+
+            // Remove default from all addresses
+            user.addresses.forEach(addr => {
+                addr.isDefault = false;
+            });
+
+            // Set new default address
+            user.addresses[addressId].isDefault = true;
+
+            await user.save();
+
+            res.json({ 
+                success: true, 
+                message: 'Đã cập nhật địa chỉ mặc định'
+            });
+        } catch (err) {
+            console.error('Error in setDefaultAddress:', err);
+            res.status(500).json({ 
+                success: false, 
+                message: 'Có lỗi xảy ra khi cập nhật địa chỉ mặc định',
+                error: err.message 
+            });
+        }
+    }
+
+    // [GET] /search
+    async search(req, res) {
+        try {
+            const searchQuery = req.query.q || '';
+            
+            if (!searchQuery.trim()) {
+                return res.redirect('/');
+            }
+
+            // Create a case-insensitive search regex
+            const searchRegex = new RegExp(searchQuery.trim(), 'i');
+
+            // Search in multiple fields
+            const products = await Product.find({
+                $or: [
+                    { name: searchRegex },
+                    { description: searchRegex },
+                    { category: searchRegex }
+                ]
+            }).lean();
+
+            res.render('products/search', {
+                products,
+                searchQuery,
+                title: `Kết quả tìm kiếm cho "${searchQuery}"`,
+                user: res.locals.user // Use the user data from res.locals
+            });
+        } catch (error) {
+            console.error('Search error:', error);
+            res.status(500).render('error', {
+                message: 'Đã xảy ra lỗi trong quá trình tìm kiếm',
+                user: res.locals.user
+            });
+        }
+    }
+
+    //[GET] /forgot-password
+    forgotPassword(req, res) {
+        res.render('user/forgot-password');
+    }
+
+    //[POST] /forgot-password
+    async handleForgotPassword(req, res) {
+        try {
+            const { email } = req.body;
+            const user = await User.findOne({ email });
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Email không tồn tại trong hệ thống'
+                });
+            }
+
+            // Tạo token ngẫu nhiên
+            const resetToken = crypto.randomBytes(32).toString('hex');
+            
+            // Lưu token và thời gian hết hạn (1 giờ)
+            user.resetPasswordToken = resetToken;
+            user.resetPasswordExpires = Date.now() + 3600000; // 1 giờ
+            await user.save();
+
+            // Gửi email
+            await sendPasswordResetEmail(email, resetToken);
+
+            res.json({
+                success: true,
+                message: 'Link đặt lại mật khẩu đã được gửi vào email của bạn'
+            });
+        } catch (error) {
+            console.error('Lỗi khi xử lý quên mật khẩu:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Đã xảy ra lỗi khi xử lý yêu cầu'
+            });
+        }
+    }
+
+    //[GET] /reset-password/:token
+    async showResetPassword(req, res) {
+        try {
+            const { token } = req.params;
+            const user = await User.findOne({
+                resetPasswordToken: token,
+                resetPasswordExpires: { $gt: Date.now() }
+            });
+
+            if (!user) {
+                return res.render('error', {
+                    message: 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn'
+                });
+            }
+
+            res.render('user/reset-password', { token });
+        } catch (error) {
+            console.error('Lỗi khi hiển thị trang đặt lại mật khẩu:', error);
+            res.render('error', {
+                message: 'Đã xảy ra lỗi khi xử lý yêu cầu'
+            });
+        }
+    }
+
+    //[POST] /reset-password
+    async handleResetPassword(req, res) {
+        try {
+            const { token, password } = req.body;
+            const user = await User.findOne({
+                resetPasswordToken: token,
+                resetPasswordExpires: { $gt: Date.now() }
+            });
+
+            if (!user) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn'
+                });
+            }
+
+            // Mã hóa mật khẩu mới
+            const hashedPassword = await bcrypt.hash(password, 10);
+            
+            // Cập nhật mật khẩu và xóa token
+            user.password = hashedPassword;
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            await user.save();
+
+            res.json({
+                success: true,
+                message: 'Đặt lại mật khẩu thành công'
+            });
+        } catch (error) {
+            console.error('Lỗi khi đặt lại mật khẩu:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Đã xảy ra lỗi khi đặt lại mật khẩu'
+            });
+        }
+    }
 }
 
 module.exports = new SiteController;

@@ -10,12 +10,16 @@ const User = new Schema({
     email: String,
     password: String,
     phone: String,
-    address: String,
+    addresses: [{
+        name: String,
+        address: String,
+        isDefault: { type: Boolean, default: false }
+    }],
     role: { type: String, enum: ['admin', 'user'], default: 'user' },
-},{timestamps: true})
+    resetPasswordToken: String,
+    resetPasswordExpires: Date
+}, {timestamps: true})
 
 User.plugin(mongoosedelte, {deletedAt: true, overrideMethods: true })
-
-
 
 module.exports = mongoose.model('User', User);

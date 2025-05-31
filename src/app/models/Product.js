@@ -19,7 +19,10 @@ const Product = new Schema({
       quantity: { type: Number, required: true, default: 0 } // Số lượng
     }
   ],
+  sold: { type: Number, default: 0 }, // Số lượng đã bán
   price: Number,
+  originalPrice: Number, // Giá gốc trước khi giảm
+  discount: Number, // Phần trăm giảm giá
   description: String,
   image: String,
   slug: { type: String, slug: 'name' },
