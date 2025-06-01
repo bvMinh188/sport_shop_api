@@ -1,99 +1,124 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <a class="navbar navbar-light bg-light" href="/admin/addProduct">Thêm sản phẩm </a>
-  <a class="navbar navbar-light bg-light" href="/admin/addCategory">Thêm loại sản phẩm </a>
-  <a class="navbar navbar-light bg-light" href="/admin/users">Thông tin người dùng</a>
-  <a class="navbar navbar-light bg-light" href="/admin/transaction">Đơn hàng</a>
-</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Thông Tin Đơn Hàng</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%">STT</th>
+                                    <th style="width: 15%">Tên khách hàng</th>
+                                    <th style="width: 20%">Địa chỉ</th>
+                                    <th style="width: 10%">Số điện thoại</th>
+                                    <th style="width: 10%">Giá</th>
+                                    <th style="width: 15%">Thời gian</th>
+                                    <th style="width: 10%">Trạng thái</th>
+                                    <th style="width: 15%">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#each order}}
+                                <tr>
+                                    <td class="text-center">{{sum @index 1}}</td>
+                                    <td>{{this.userId.username}}</td>
+                                    <td class="address-cell" title="{{this.address}}">{{this.address}}</td>
+                                    <td>{{this.userId.phone}}</td>
+                                    <td class="text-end">{{this.price}}</td>
+                                    <td>{{formatDate this.createdAt}}</td>
+                                    <td class="text-center">{{this.status}}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-primary btn-sm btn-view-order" data-bs-toggle="modal" 
+                                                data-bs-target="#detail-order-modal" 
+                                                data-order='{{{json this}}}'>
+                                                <i class="fas fa-eye"></i> Xem
+                                            </button>
+                                            {{#if (eq this.status "chờ xác nhận")}}
+                                                <button class="btn btn-success btn-sm btn-confirm" data-id="{{this._id}}">
+                                                    <i class="fas fa-check"></i> Xác nhận
+                                                </button>
+                                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-id="{{this._id}}" data-bs-target="#delete-order-modal">
+                                                    <i class="fas fa-times"></i> Hủy
+                                                </button>
+                                            {{/if}}
+                                            {{#if (eq this.status "đang giao")}}
+                                                <button class="btn btn-success btn-sm btn-complete" data-id="{{this._id}}">
+                                                    <i class="fas fa-check-double"></i> Giao thành công
+                                                </button>
+                                            {{/if}}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{/each}}
+                            </tbody>
+                        </table>
+                    </div>
 
-<div class="col-md-12">
-    <h3>Thông tin đơn hàng</h3>
-    <table class="table mt-4">
-        <thead>
-            <tr>
-                <th scope="col">STT</th>
-                <th scope="col">Tên khách hàng</th>
-                <th scope="col">Địa chỉ</th>
-                <th scope="col">Số điện thoại</th>
-                <th scope="col">Giá</th>
-                <th scope="col">Thời gian</th>
-                <th scope="col">Trạng thái</th>
-                <th scope="col">Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            {{#each order}}
-                <tr>
-                    <td class="name">{{sum @index 1}}</td>
-                    <td>{{this.userId.username}}</td>
-                    <td>{{this.address}}</td>
-                    <td>{{this.userId.phone}}</td>
-                    <td>{{this.price}}</td>
-                    <td>{{formatDate this.createdAt}}</td>
-                    <td>{{this.status}}</td>
-                    <td>
-                        <a href="#" class="btn btn-primary btn-view-order" data-toggle="modal" 
-                            data-products='{{{json this.products}}}' data-target="#detail-order-modal">
-                            Xem
-                        </a>
-
-
-                        {{#if (eq this.status "chờ xác nhận")}}
-                            <a href="" class="btn btn-success btn-confirm" data-id="{{this._id}}">Xác nhận</a>
-                            <a href="#" class="btn btn-danger" data-toggle="modal" data-id="{{this._id}}" data-target="#delete-order-modal">Hủy</a>
-                        {{/if}}
-                        {{#if (eq this.status "đang giao")}}
-                            <a href="" class="btn btn-success btn-complete"data-id="{{this._id}}">Giao thành công</a>
-                        {{/if}}
-                    </td>
-                </tr>
-            {{/each}}
-        </tbody>
-    </table>
+                    {{#unless order.length}}
+                    <div class="alert alert-info text-center mt-3">
+                        Không tìm thấy đơn hàng nào.
+                    </div>
+                    {{/unless}}
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal Xem Đơn Hàng -->
-<div id="detail-order-modal" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog modal-lg" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Chi tiết đơn hàng</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <div id="order-products" class="row"></div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
-      </div>
+<div id="detail-order-modal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">Chi tiết đơn hàng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="order-info mb-4">
+                    <h6 class="text-primary mb-3">Thông tin đơn hàng</h6>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Khách hàng:</strong> <span id="customer-name"></span></p>
+                            <p><strong>Số điện thoại:</strong> <span id="customer-phone"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Địa chỉ:</strong> <span id="customer-address"></span></p>
+                            <p><strong>Tổng tiền:</strong> <span id="order-total"></span></p>
+                        </div>
+                    </div>
+                </div>
+                <h6 class="text-primary mb-3">Danh sách sản phẩm</h6>
+                <div id="order-products" class="row g-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
-
-
-
-
-{{!-- Modal Xác Nhận Xóa --}}
-<div id="delete-order-modal" class="modal fade" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Hủy đơn hàng </h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
-        <button id="btn-delete-order" type="button" class="btn btn-danger">có</button>
-      </div>
+<!-- Modal Xác Nhận Hủy -->
+<div id="delete-order-modal" class="modal fade" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" style="color: blue;">Xác nhận hủy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>
+                <p style="color: #dc3545;">Hành động này không thể hoàn tác.</p>
+            </div>
+            <div class="modal-footer" style="justify-content: center; gap: 10px;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width: 100px;">Hủy</button>
+                <button id="btn-delete-order" type="button" class="btn btn-danger" style="min-width: 100px;">Xác nhận</button>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 
 {{!-- Form Ẩn --}}
@@ -105,35 +130,179 @@
 {{!-- Form giao thành công --}}
 <form name="complete-order-form" method="POST"></form>
 
+<style>
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 0.5rem;
+}
+
+.address-cell {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.text-end {
+    text-align: right;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Style cho modal */
+.modal-content {
+    border-radius: 8px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: none;
+    padding: 20px 20px 10px;
+}
+
+.modal-body {
+    padding: 20px;
+    text-align: center;
+}
+
+.modal-footer {
+    border-top: none;
+    padding: 10px 20px 20px;
+}
+
+.btn {
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.btn i {
+    margin-right: 5px;
+}
+
+#order-products .card {
+    height: 100%;
+    border: none;
+    box-shadow: 0 0 10px rgba(0,0,0,.1);
+}
+
+#order-products .card-img-top {
+    height: 150px;
+    object-fit: cover;
+}
+
+/* Style cho modal chi tiết đơn hàng */
+#detail-order-modal .modal-content {
+    border: none;
+    border-radius: 8px;
+}
+
+#detail-order-modal .modal-header {
+    border-radius: 8px 8px 0 0;
+}
+
+#detail-order-modal .modal-body {
+    padding: 20px;
+}
+
+#detail-order-modal .order-info {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+#detail-order-modal .card {
+    transition: transform 0.2s;
+}
+
+#detail-order-modal .card:hover {
+    transform: translateY(-5px);
+}
+
+#detail-order-modal .card-title {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+#detail-order-modal .badge {
+    font-weight: normal;
+    padding: 0.5em 0.8em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #detail-order-modal .col-md-6 {
+        margin-bottom: 1rem;
+    }
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const orderProductsContainer = document.getElementById('order-products');
 
+    // Tooltip cho địa chỉ
+    const addresses = document.querySelectorAll('.address-cell');
+    addresses.forEach(cell => {
+        $(cell).tooltip({
+            placement: 'top',
+            trigger: 'hover'
+        });
+    });
+
     // Khi modal "Xem Đơn Hàng" được kích hoạt
     $('#detail-order-modal').on('show.bs.modal', function (event) {
         const button = $(event.relatedTarget);
-        let productsData = button.attr('data-products');
-        // Parse JSON
-        let products;
-        try {
-            products = JSON.parse(productsData);
-        } catch (error) {
-            console.error('Lỗi khi parse JSON:', error);
-            return;
-        }
+        const orderData = button.data('order');
+        
+        // Cập nhật thông tin đơn hàng
+        $('#customer-name').text(orderData.userId.username);
+        $('#customer-phone').text(orderData.userId.phone);
+        $('#customer-address').text(orderData.address);
+        
+        // Format tổng tiền với dấu phân cách hàng nghìn
+        const formattedPrice = orderData.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        $('#order-total').text(formattedPrice);
+
         // Xóa nội dung cũ
         orderProductsContainer.innerHTML = '';
 
         // Hiển thị chi tiết sản phẩm
-        products.forEach(product => {
+        orderData.products.forEach(product => {
             const productHtml = `
-                <div class="col-md-4 mb-3">
-                    <div class="card">
-                        <img src="${product.image}" class="card-img-top" alt="${product.name}" style="height: 150px; object-fit: cover;">
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border-0 shadow-sm">
+                        <div class="position-relative">
+                            <img src="${product.image}" class="card-img-top" alt="${product.name}" style="height: 200px; object-fit: cover;">
+                            <div class="position-absolute bottom-0 end-0 p-2 bg-primary text-white">
+                                Size: ${product.size}
+                            </div>
+                        </div>
                         <div class="card-body">
-                            <h5 class="card-title">${product.name}</h5>
-                            <p class="card-text">Size: ${product.size}</p>
-                            <p class="card-text">Số lượng: ${product.quantity}</p>
+                            <h6 class="card-title text-truncate" title="${product.name}">${product.name}</h6>
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <span class="badge bg-info">Số lượng: ${product.quantity}</span>
+                            </div>
                         </div>
                     </div>
                 </div>`;
@@ -176,5 +345,4 @@ document.addEventListener('DOMContentLoaded', function() {
         completeForm.submit();
     });
 });
-
 </script>

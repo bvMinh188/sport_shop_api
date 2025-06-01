@@ -70,7 +70,12 @@ app.engine("hbs", handlebars.engine({
       for (let i = start; i <= end; i++) list.push(i);
       return list;
     },
-    // Định dạng giá tiền (VD: 1.000.000 VND)
+    // Định dạng giá tiền (VD: 1.000.000)
+    formatCurrency: (amount) => {
+      if (amount == null) return "0";  
+      return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    },
+    // Định dạng giá tiền cũ (VD: 1.000.000 VND)
     formatPrince: (a) => {
       if (a == null) return "Không có giá";  
       return a.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".") + " VND";
@@ -107,6 +112,23 @@ app.engine("hbs", handlebars.engine({
     getOrderAddress: function(order) {
       if (!order || !order.address) return '';
       return order.address;
+    },
+    // Lấy class cho trạng thái đơn hàng
+    getStatusClass: function(status) {
+      switch(status) {
+        case 'chờ xác nhận':
+          return 'badge-pending';
+        case 'đã xác nhận':
+          return 'badge-confirmed';
+        case 'đang giao hàng':
+          return 'badge-shipping';
+        case 'đã giao hàng':
+          return 'badge-delivered';
+        case 'đã hủy':
+          return 'badge-cancelled';
+        default:
+          return 'badge-secondary';
+      }
     }
   }
 }));

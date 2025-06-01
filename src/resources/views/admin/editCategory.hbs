@@ -1,0 +1,105 @@
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main content -->
+        <main role="main" class="col-md-10 ml-sm-auto px-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+                <h1>Chỉnh Sửa Danh Mục</h1>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    {{#if error}}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{error}}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    {{/if}}
+
+                    <form method="POST" action="/admin/category/edit/{{category._id}}?_method=PUT">
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Tên danh mục <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" value="{{category.name}}" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="description" class="form-label">Mô tả</label>
+                            <textarea class="form-control" id="description" name="description" rows="3">{{category.description}}</textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="/admin/category" class="btn btn-secondary">Hủy</a>
+                            <button type="submit" class="btn btn-primary">Lưu thay đổi</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<style>
+.sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 100;
+    padding: 48px 0 0;
+    box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
+}
+
+.sidebar-sticky {
+    position: relative;
+    top: 0;
+    height: calc(100vh - 48px);
+    padding-top: .5rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.nav-link {
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: all 0.3s;
+}
+
+.nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link.active {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.nav-link i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+main {
+    margin-left: 16.666667%;
+}
+
+.nav {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.mt-auto {
+    margin-top: auto !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.gap-2 {
+    gap: 0.5rem;
+}
+</style> 

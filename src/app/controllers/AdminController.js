@@ -7,6 +7,26 @@ const { mongooseToObject, mutipleMongooseToObject } = require('../../util/mongoo
 
 
 class AdminController{
+    //[GET] /admin/home
+    async home(req, res, next) {
+        try {
+            const totalCategories = await Category.countDocuments();
+            const totalProducts = await Product.countDocuments();
+            const totalOrders = await Order.countDocuments();
+            const totalUsers = await User.countDocuments();
+
+            res.render('admin/home', {
+                totalCategories,
+                totalProducts,
+                totalOrders,
+                totalUsers,
+                isHome: true
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
     //[Get] /admin
     storedProducts(req, res, next) {
             let page = parseInt(req.query.page) || 1;
@@ -44,6 +64,54 @@ class AdminController{
             .catch(next);
         }
 
+    //[Get] /admin/product
+    async productList(req, res, next) {
+        try {
+            let page = parseInt(req.query.page) || 1;
+            let limit = 12;
+            let skip = (page - 1) * limit;
+        
+            let filter = {};
+            if (req.query.category) {
+                filter.category = req.query.category;
+            }
+        
+            let productQuery = Product.find(filter);
+        
+            if (req.query._sort) {
+                productQuery = productQuery.sort({ price: req.query._sort });
+            }
+
+            const [products, totalProducts, categories] = await Promise.all([
+                productQuery.skip(skip).limit(limit),
+                Product.countDocuments(filter),
+                Product.distinct("category")
+            ]);
+
+            // Tính tổng số lượng cho mỗi sản phẩm
+            const productsWithTotalQuantity = products.map(product => {
+                const totalQuantity = product.sizes.reduce((sum, size) => sum + size.quantity, 0);
+                return {
+                    ...product.toObject(),
+                    totalQuantity
+                };
+            });
+
+            const totalPages = Math.ceil(totalProducts / limit);
+    
+            res.render('admin/product', {
+                categories: categories,
+                products: productsWithTotalQuantity,
+                currentPage: page,
+                totalPages: totalPages,
+                selectedCategory: req.query.category || null,
+                _sort: req.query._sort || "",
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
     //[Get] /admin/addProduct
     addProduct(req, res, next) {
         Category.find({})
@@ -71,19 +139,49 @@ class AdminController{
 
     //[Get] /admin/addCategory
     addCategory(req, res, next) {
-        res.render('admin/addCategory')
+        res.render('admin/addCategory');
     }
 
-    //[POST] /admin/addedCategory
-    addedCategory(req, res, next) {
-        const category = new Category(req.body)
-    
-        category.save()
-            .then(() => {
-                res.redirect('/admin');
+    //[POST] /admin/category/add
+    async addedCategory(req, res, next) {
+        try {
+            const category = new Category({
+                name: req.body.name,
+                description: req.body.description
+            });
+            await category.save();
+            res.redirect('/admin/category');
+        } catch (err) {
+            next(err);
+        }
+    }
 
-            })
-            .catch(next);
+    //[GET] /admin/category/edit/:id
+    async editCategory(req, res, next) {
+        try {
+            const category = await Category.findById(req.params.id).lean();
+            if (!category) {
+                return res.redirect('/admin/category');
+            }
+            res.render('admin/editCategory', {
+                category: category
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[PUT] /admin/category/edit/:id
+    async updateCategory(req, res, next) {
+        try {
+            await Category.findByIdAndUpdate(req.params.id, {
+                name: req.body.name,
+                description: req.body.description
+            });
+            res.redirect('/admin/category');
+        } catch (err) {
+            next(err);
+        }
     }
 
     show(req, res, next){
@@ -211,6 +309,58 @@ class AdminController{
             .then(() => res.redirect('back'))
             .catch(next)
 
+    }
+
+    //[GET] /admin/category
+    async categoryList(req, res, next) {
+        try {
+            const categories = await Category.find({}).lean();
+            const categoriesWithIndex = categories.map((category, index) => ({
+                ...category,
+                index: index + 1
+            }));
+            
+            res.render('admin/category', {
+                categories: categoriesWithIndex
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[DELETE] /admin/category/:id
+    async deleteCategory(req, res, next) {
+        try {
+            await Category.findByIdAndDelete(req.params.id);
+            res.status(200).json({ message: 'Category deleted successfully' });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[Get] /admin/transaction/:id/detail
+    async getOrderDetail(req, res, next) {
+        try {
+            const order = await Order.findById(req.params.id)
+                .populate("userId", "username phone")
+                .lean();
+
+            if (!order) {
+                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+            }
+
+            // Format giá tiền
+            order.price = order.price.toString();
+            order.products = order.products.map(product => ({
+                ...product,
+                price: product.price ? product.price.toString() : '0'
+            }));
+
+            res.json(order);
+        } catch (err) {
+            console.error('Error in getOrderDetail:', err);
+            res.status(500).json({ message: 'Có lỗi xảy ra khi lấy thông tin đơn hàng' });
+        }
     }
 }
    

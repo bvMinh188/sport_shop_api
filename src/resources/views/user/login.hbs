@@ -32,8 +32,8 @@
     </div>
     <button type="submit" class="btn btn-danger w-100">Đăng nhập</button>
     <div class="text-center mt-3">
-        <p>Chưa có tài khoản? <a href="/register" class="text-danger">Đăng ký ngay</a></p>
-        <p><a href="/forgot-password" class="text-danger">Quên mật khẩu?</a></p>
+        <p style="color: aliceblue;">Chưa có tài khoản? <a href="/register" class="text-danger">Đăng ký ngay</a></p>
+        <p style="color: aliceblue;"><a href="/forgot-password" class="text-danger">Quên mật khẩu?</a></p>
     </div>
 </form>
 
@@ -77,7 +77,7 @@
                 },
                 success: function(response){
                     if(response.message == 'admin'){
-                        window.location.href = "/admin";
+                        window.location.href = "/admin/home";
                     }else if(response.message == 'user'){
                         window.location.href = "/";
                     }else{

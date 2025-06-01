@@ -4,6 +4,11 @@ const jwt = require('jsonwebtoken');
 const User = require('../app/models/User');
 
 const adminController = require('../app/controllers/AdminController');
+const productController = require('../app/controllers/ProductController');
+const categoryController = require('../app/controllers/CategoryController');
+const orderController = require('../app/controllers/OrderController');
+const userController = require('../app/controllers/UserController');
+
 const dotenv = require('dotenv');
 dotenv.config();
 
@@ -64,31 +69,45 @@ var checkUser = (req, res, next) => {
     }
 };
 
+// Middleware set layout cho admin
+var setAdminLayout = (req, res, next) => {
+    res.locals.layout = 'admin';
+    next();
+};
 
-router.get('/admin/addProduct',checkLogin, checkUser, adminController.addProduct);
-router.post('/admin/added',checkLogin, checkUser, adminController.added);
+// Áp dụng middleware setAdminLayout cho tất cả route
+router.use(setAdminLayout);
 
-router.get('/admin/addCategory',checkLogin, checkUser, adminController.addCategory);
-router.post('/admin/addedCategory',checkLogin, checkUser, adminController.addedCategory);
+// Home routes
+router.get('/home', checkLogin, checkUser, adminController.home);
 
-router.get('/admin/:id/edit', adminController.edit);
-router.put('/admin/:id', adminController.update);
-router.delete('/admin/:id', adminController.delete)
+// Product routes
+router.get('/product', checkLogin, checkUser, productController.productList);
+router.get('/product/add', checkLogin, checkUser, productController.addProduct);
+router.post('/product/add', checkLogin, checkUser, productController.added);
+router.get('/product/edit/:id', checkLogin, checkUser, productController.edit);
+router.put('/product/edit/:id', checkLogin, checkUser, productController.update);
+router.delete('/product/delete/:id', checkLogin, checkUser, productController.delete);
 
-router.get('/admin/users/:id/edit', checkLogin, checkUser, adminController.showUsersEdit);
-router.get('/admin/users/:id/delete', checkLogin, checkUser, adminController.showUsersDelete);
+// Category routes
+router.get('/category', checkLogin, checkUser, categoryController.categoryList);
+router.get('/category/add', checkLogin, checkUser, categoryController.addCategory);
+router.post('/category/add', checkLogin, checkUser, categoryController.addedCategory);
+router.get('/category/edit/:id', checkLogin, checkUser, categoryController.editCategory);
+router.put('/category/edit/:id', checkLogin, checkUser, categoryController.updateCategory);
+router.delete('/category/delete/:id', checkLogin, checkUser, categoryController.delete);
 
-router.put('/admin/users/:id/edited', checkLogin, checkUser, adminController.showUsersEdited);
-router.delete('/admin/users/:id/deleted', checkLogin, checkUser, adminController.showUsersDeleted);
-router.delete('/admin/transaction/:id', checkLogin, checkUser, adminController.deleteOrder);
-router.patch('/admin/transaction/:id/complete', checkLogin, checkUser, adminController.completeOrder);
-router.patch('/admin/transaction/:id/confirm', checkLogin, checkUser, adminController.confirmOrder);
-router.get('/admin/transaction', checkLogin, checkUser, adminController.transaction);
-router.get('/admin/users', checkLogin, checkUser, adminController.showUsers);
-router.get('/admin', checkLogin, checkUser, adminController.storedProducts);
+// User routes
+router.get('/users', checkLogin, checkUser, userController.showUsers);
+router.get('/users/edit/:id', checkLogin, checkUser, userController.showUsersEdit);
+router.put('/users/:id/edited', checkLogin, checkUser, userController.showUsersEdited);
+router.delete('/users/:id/deleted', checkLogin, checkUser, userController.showUsersDeleted);
 
-
-
-
+// Order routes
+router.get('/transaction', checkLogin, checkUser, adminController.transaction);
+router.get('/transaction/:id/detail', checkLogin, checkUser, adminController.getOrderDetail);
+router.patch('/transaction/:id/confirm', checkLogin, checkUser, adminController.confirmOrder);
+router.patch('/transaction/:id/complete', checkLogin, checkUser, adminController.completeOrder);
+router.delete('/transaction/:id', checkLogin, checkUser, adminController.deleteOrder);
 
 module.exports = router;

@@ -190,7 +190,145 @@
     </div>
 </div>
 
-<div class="message-container"></div>
+<!-- Modal Xác Nhận Xóa -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xác nhận xóa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?</p>
+                <div class="product-info mt-3">
+                    <div class="d-flex align-items-center">
+                        <img id="deleteProductImage" src="" alt="" class="me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                        <div>
+                            <h6 id="deleteProductName" class="mb-1"></h6>
+                            <p class="mb-1">Size: <span id="deleteProductSize"></span></p>
+                            <p class="mb-0">Số lượng: <span id="deleteProductQuantity"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="message-container">
+    <div class="message"></div>
+</div>
+
+<style>
+    .message-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        visibility: hidden;
+        opacity: 0;
+        transition: all 0.3s ease;
+        min-width: 300px;
+        text-align: center;
+    }
+
+    .message {
+        padding: 15px 25px;
+        border-radius: 8px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        color: white;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .message.success {
+        background-color: rgba(40, 167, 69, 0.95);
+    }
+
+    .message.error {
+        background-color: rgba(220, 53, 69, 0.95);
+    }
+
+    .message i {
+        font-size: 20px;
+    }
+
+    .message span {
+        font-weight: 500;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, calc(-50% + 20px));
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+    }
+
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+        to {
+            opacity: 0;
+            transform: translate(-50%, calc(-50% - 20px));
+        }
+    }
+
+    .message-container.show {
+        visibility: visible;
+        opacity: 1;
+        animation: fadeIn 0.3s ease forwards;
+    }
+
+    .message-container.hide {
+        animation: fadeOut 0.3s ease forwards;
+    }
+
+    .product-info {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    #deleteConfirmModal .modal-content {
+        border-radius: 8px;
+        border: none;
+    }
+
+    #deleteConfirmModal .modal-header {
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+
+    #deleteConfirmModal .modal-footer {
+        border-top: 1px solid #dee2e6;
+        padding: 1rem;
+    }
+
+    #deleteConfirmModal .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    #deleteConfirmModal .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+</style>
 
 <script>
 $(document).ready(function(){
@@ -230,7 +368,7 @@ $(document).ready(function(){
                     success: function(response) {
                         if (response.message === 'Cập nhật giỏ hàng thành công') {
                             showMessage('Cập nhật giỏ hàng thành công', 'success');
-                            window.location.reload();
+                            setTimeout(() => window.location.reload(), 2500);
                         } else {
                             showMessage(response.message, 'error');
                         }
@@ -245,26 +383,49 @@ $(document).ready(function(){
         }
     });
 
+    let deleteProductData = null;
+
     $('.delete-btn').click(function() {
-        var productId = $(this).data('id');
-        var size = $(this).data('size');
+        const row = $(this).closest('tr');
+        deleteProductData = {
+            id: $(this).data('id'),
+            size: $(this).data('size'),
+            name: row.find('.name').text(),
+            image: row.find('img').attr('src'),
+            quantity: row.find('.quantity').text()
+        };
+
+        // Cập nhật thông tin sản phẩm trong modal
+        $('#deleteProductName').text(deleteProductData.name);
+        $('#deleteProductSize').text(deleteProductData.size);
+        $('#deleteProductQuantity').text(deleteProductData.quantity);
+        $('#deleteProductImage').attr('src', deleteProductData.image);
+
+        // Hiển thị modal
+        $('#deleteConfirmModal').modal('show');
+    });
+
+    $('#confirmDelete').click(function() {
+        if (!deleteProductData) return;
+
+        const btn = $(this);
+        const originalText = btn.text();
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
         $.ajax({
-            url: `/delete-order/${productId}`,
+            url: `/delete-cart/${deleteProductData.id}?size=${deleteProductData.size}`,
             method: 'DELETE',
-            data: {
-                size: size
-            },
             success: function(response) {
-                if (response.message === 'Xóa thành công') {
-                    showMessage('Xóa sản phẩm thành công', 'success');
-                    window.location.reload();
-                } else {
-                    showMessage(response.message, 'error');
-                }
+                $('#deleteConfirmModal').modal('hide');
+                showMessage('Đã xóa sản phẩm ra khỏi giỏ hàng', 'success');
+                setTimeout(() => window.location.reload(), 2000);
             },
-            error: function() {
-                showMessage('Đã xảy ra lỗi khi xóa sản phẩm', 'error');
+            error: function(xhr) {
+                const message = xhr.responseJSON?.message || 'Đã xảy ra lỗi khi xóa sản phẩm';
+                showMessage(message, 'error');
+            },
+            complete: function() {
+                btn.prop('disabled', false).text(originalText);
             }
         });
     });
@@ -284,6 +445,7 @@ $(document).ready(function(){
         $('#addressName').val('');
         $('#newAddress').val('');
         $('#setAsDefault').prop('checked', false);
+        window.location.reload();
     });
 
     $('#saveAddress').click(function() {
@@ -471,21 +633,21 @@ $(document).ready(function(){
     });
 
     function showMessage(message, type = 'success') {
+        const messageContainer = $('.message-container');
+        const messageElement = $('.message');
+        
+        // Thêm icon cho message
         const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
-        const messageElement = $(`
-            <div class="message ${type}">
-                <i class="fas fa-${icon}"></i>
-                ${message}
-            </div>
+        messageElement.html(`
+            <i class="fas fa-${icon}"></i>
+            <span>${message}</span>
         `);
         
-        $('.message-container').append(messageElement);
+        messageElement.removeClass('success error').addClass(type);
+        messageContainer.removeClass('hide').addClass('show');
         
         setTimeout(() => {
-            messageElement.addClass('hiding');
-            setTimeout(() => {
-                messageElement.remove();
-            }, 300);
+            messageContainer.removeClass('show').addClass('hide');
         }, 2000);
     }
 });

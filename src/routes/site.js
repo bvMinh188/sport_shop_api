@@ -72,7 +72,8 @@ router.post('/order/:id', siteController.addProductCart);
 router.get('/order', checkLogin, siteController.showOrder);
 router.post('/checkout', checkLogin, siteController.checkout);
 router.post('/update-order/:id', checkLogin, siteController.updateOrder);
-router.delete('/delete-order/:id', checkLogin, siteController.deleteOrder);
+router.delete('/delete-cart/:id', checkLogin, siteController.deleteCartItem);
+router.delete('/cancel-order/:id', checkLogin, siteController.cancelOrder);
 
 // User profile and address routes
 router.get('/account', checkLogin, siteController.profile);
@@ -83,5 +84,7 @@ router.post('/set-default-address', checkLogin, siteController.setDefaultAddress
 router.get('/search', checkLogin, siteController.search);
 router.get('/:slug', siteController.showProduct);
 router.get('/', checkLogin, siteController.index);
+
+router.post('/account/updateprofile', checkLogin, siteController.updateProfile);
 
 module.exports = router;

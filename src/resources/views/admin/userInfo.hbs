@@ -1,40 +1,134 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-  <a class="navbar navbar-light bg-light" href="/admin/addProduct">Thêm sản phẩm </a>
-  <a class="navbar navbar-light bg-light" href="/admin/addCategory">Thêm loại sản phẩm </a>
-  <a class="navbar navbar-light bg-light" href="/admin/users">Thông tin người dùng</a>
-  <a class="navbar navbar-light bg-light" href="/admin/transaction">Đơn hàng</a>
-</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Thông Tin Người Dùng</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%">STT</th>
+                                    <th style="width: 20%">Tên người dùng</th>
+                                    <th style="width: 25%">Email</th>
+                                    <th style="width: 10%">Vai trò</th>
+                                    <th style="width: 20%">Ngày tạo</th>
+                                    <th style="width: 20%">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#each user}}
+                                <tr>
+                                    <td class="text-center">{{sum @index 1}}</td>
+                                    <td>{{this.username}}</td>
+                                    <td>{{this.email}}</td>
+                                    <td class="text-center">{{this.role}}</td>
+                                    <td>{{formatDate this.createdAt}}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="/admin/users/edit/{{this._id}}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-edit"></i> Sửa
+                                            </a>
+                                            <a href="#" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#delete-user-modal-{{this._id}}">
+                                                <i class="fas fa-trash"></i> Xóa
+                                            </a>
+                                        </div>
 
-<table class="table mt-4">
-  <thead>
-    <tr>
-      <th scope="col" style="align-items: center;">STT</th>
-      <th scope="col" style="align-items: center;">Tên người dùng</th>
-      <th scope="col" style="align-items: center;">email</th>
-      <th scope="col" style="align-items: center;">role</th>
-      <th scope="col" style="align-items: center;">Ngày tạo</th>
-      <th scope="col" style="align-items: center;">sửa</th>
-      <th scope="col" style="align-items: center;">xóa</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{#each user}}
-    <tr>
-        <td style="align-items: center;">{{sum @index 1}}</th>
-        <td style="align-items: center;">{{this.username}}</td>
-        <td style="align-items: center;">{{this.email}}</td>
-        <td style="align-items: center;">{{this.role}}</td>
-        <td style="align-items: center;">{{formatDate this.createdAt}}</td>
-        <td style="align-items: center;">
-            <button type="submit" class="btn btn-success"><a href="/admin/users/{{this._id}}/edit" style="color: white"><span>Sửa</span></a></button>
-            
-        </td>
-        <td style="align-items: center;">
-            <button type="submit" class="btn btn-danger"><a href="/admin/users/{{this._id}}/delete" style="color: white"><span>Xóa</span></a></button>
-           
-        </td>
-    </tr>
-    {{/each}}
-   
-  </tbody>
-</table>
+                                        <!-- Modal Xác Nhận Xóa cho từng user -->
+                                        <div class="modal fade" id="delete-user-modal-{{this._id}}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" style="color: blue;">Xác nhận xóa</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Bạn có chắc chắn muốn xóa người dùng <strong>{{this.username}}</strong>?</p>
+                                                        <p style="color: #dc3545;">Hành động này không thể hoàn tác.</p>
+                                                    </div>
+                                                    <div class="modal-footer" style="justify-content: center; gap: 10px;">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width: 100px;">Hủy</button>
+                                                        <a href="/admin/users/{{this._id}}/delete" class="btn btn-danger" style="min-width: 100px;">Xác nhận</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{/each}}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{#unless user.length}}
+                    <div class="alert alert-info text-center mt-3">
+                        Không tìm thấy người dùng nào.
+                    </div>
+                    {{/unless}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 0.5rem;
+}
+
+.text-center {
+    text-align: center;
+}
+
+/* Style cho modal */
+.modal-content {
+    border-radius: 8px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: none;
+    padding: 20px 20px 10px;
+}
+
+.modal-body {
+    padding: 20px;
+    text-align: center;
+}
+
+.modal-footer {
+    border-top: none;
+    padding: 10px 20px 20px;
+}
+
+.btn {
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.btn i {
+    margin-right: 5px;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
