@@ -1,14 +1,10 @@
-const express = require('express')
-const router = express.Router()
-const jwt = require('jsonwebtoken')
-const User = require('../app/models/User')
-const siteController = require('../app/controllers/SiteController')
-const dotenv = require('dotenv')
-dotenv.config()
+const jwt = require('jsonwebtoken');
+const User = require('../app/models/User');
+const dotenv = require('dotenv');
+dotenv.config();
 
 const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
 
-// Authentication middleware
 const checkLogin = (req, res, next) => {
     const token = req.cookies?.token;
 
@@ -49,7 +45,4 @@ const checkLogin = (req, res, next) => {
     }
 };
 
-// Site routes
-router.get('/', checkLogin, siteController.index);
-
-module.exports = router;
+module.exports = { checkLogin }; 

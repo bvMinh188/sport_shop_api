@@ -185,7 +185,11 @@ class AuthController {
 
     // [POST] /auth/logout
     logout(req, res) {
-        res.clearCookie('token');
+        res.clearCookie('token', {
+            httpOnly: true,
+            sameSite: 'Lax',
+            secure: false // Giữ false vì đang dùng HTTP
+        });
         res.json({ message: 'success' });
     }
 }

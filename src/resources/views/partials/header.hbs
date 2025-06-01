@@ -2,18 +2,12 @@
 <header>
     <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
         <div class="container">
-            {{#if (eq user.role "admin")}}
-                <a class="navbar-brand ml-auto" href="/admin">
-                    <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1067900/header.jpg?t=1706149846" alt="Admin Dashboard">
-                </a>
-            {{else}}
-                <a class="navbar-brand ml-auto" href="/">
-                    <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1067900/header.jpg?t=1706149846" alt="Sport Shop Logo">
-                </a>
-            {{/if}}
+            <a class="navbar-brand ml-auto" href="/">
+                <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1067900/header.jpg?t=1706149846" alt="Sport Shop Logo">
+            </a>
 
             <!-- Search Form -->
-            <form class="d-flex search-form mx-auto" action="/search" method="GET">
+            <form class="d-flex search-form mx-auto" action="/products/search" method="GET">
                 <div class="input-group">
                     <input type="text" class="form-control" placeholder="Tìm kiếm sản phẩm..." name="q" id="searchInput" value="{{searchQuery}}" required>
                     <button class="btn btn-outline-light search-button" type="submit">
@@ -28,32 +22,19 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ml-auto">
                     {{#if user}}
-                        {{#if (eq user.role "admin")}}
-                            <!-- Admin Navigation -->
-                            <li class="nav-item">
-                                <a href="/admin/products" class="btn custom-btn">Quản lý sản phẩm</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="/admin/orders" class="btn custom-btn">Quản lý đơn hàng</a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="/admin/users" class="btn custom-btn">Quản lý người dùng</a>
-                            </li>
-                        {{else}}
-                            <!-- User Navigation -->
-                            <li class="nav-item">
-                                <a href="/user/profile" class="btn custom-btn">
-                                    <img class="account-icon" src="https://png.pngtree.com/png-vector/20191009/ourmid/pngtree-user-icon-png-image_1796659.jpg" alt="thông tin cá nhân">
-                                    <span>Tài khoản</span>
-                                </a>
-                            </li>
-                            <li class="nav-item">
-                                <a href="/cart/show" class="btn custom-btn">
-                                    <img class="order-icon" src="https://cdn.pixabay.com/photo/2014/04/02/10/53/shopping-cart-304843_640.png" alt="Giỏ hàng">
-                                    <span>Giỏ hàng</span>
-                                </a>
-                            </li>
-                        {{/if}}
+                        <!-- User Navigation -->
+                        <li class="nav-item">
+                            <a href="/user/profile" class="btn custom-btn">
+                                <img class="account-icon" src="https://png.pngtree.com/png-vector/20191009/ourmid/pngtree-user-icon-png-image_1796659.jpg" alt="thông tin cá nhân">
+                                <span>Tài khoản</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="/cart/show" class="btn custom-btn">
+                                <img class="order-icon" src="https://cdn.pixabay.com/photo/2014/04/02/10/53/shopping-cart-304843_640.png" alt="Giỏ hàng">
+                                <span>Giỏ hàng</span>
+                            </a>
+                        </li>
                         <li class="nav-item">
                             <button class="btn custom-btn" id="logout-btn">
                                 <span>Đăng xuất</span>
@@ -86,9 +67,12 @@ document.addEventListener("DOMContentLoaded", function () {
     // Handle logout
     if (logoutBtn) {
         logoutBtn.addEventListener("click", function () {
-            fetch("/logout", { method: "POST" })
-                .then(() => {
-                    window.location.href = "/auth/login";
+            fetch("/auth/logout", { method: "POST" })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.message === 'success') {
+                        window.location.href = "/auth/login";
+                    }
                 })
                 .catch(error => console.error("Lỗi đăng xuất:", error));
         });

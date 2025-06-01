@@ -585,7 +585,7 @@ $(document).ready(function(){
         submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
         $.ajax({
-            url: "/checkout",
+            url: "/order/checkout",
             method: "POST",
             data: {
                 address: selectedAddressValue,
@@ -595,7 +595,7 @@ $(document).ready(function(){
                 if (response.message === 'success') {
                     showMessage('Đặt hàng thành công', 'success');
                     setTimeout(() => {
-                        window.location.href = "/account";
+                        window.location.href = "/user/profile";
                     }, 1000);
                 } else {
                     showMessage(response.message || 'Đã xảy ra lỗi', 'error');

@@ -220,13 +220,29 @@ class AdminController{
     }
 
     //[Get] /admin/users
-    showUsers(req, res, next){
-        User.find()
-            .then(user => {
-                
-                res.render('admin/userInfo', { user : mutipleMongooseToObject(user) });
-            })
-            .catch(next);
+    async showUsers(req, res, next) {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = 10; // số người dùng mỗi trang
+            const skip = (page - 1) * limit;
+
+            // Đếm tổng số người dùng
+            const totalUsers = await User.countDocuments({});
+            const totalPages = Math.ceil(totalUsers / limit);
+
+            const users = await User.find({})
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
+
+            res.render('admin/userInfo', {
+                user: mutipleMongooseToObject(users),
+                currentPage: page,
+                totalPages: totalPages
+            });
+        } catch (err) {
+            next(err);
+        }
     }
 
     //[Get] /admin/users/:id/edit
@@ -266,49 +282,106 @@ class AdminController{
     }
 
 
-    //[Get] /admin/transaction
-    transaction(req,res,next){
-        Order.find().populate("userId", "username phone")
-            .then(order => {
-                res.render('admin/transaction', { order: mutipleMongooseToObject(order) });
-            })
-            .catch(next);
+    //[GET] /admin/transaction
+    async transaction(req, res, next) {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = 10; // số đơn hàng mỗi trang
+            const skip = (page - 1) * limit;
 
+            // Đếm tổng số đơn hàng
+            const totalOrders = await Order.countDocuments({});
+            const totalPages = Math.ceil(totalOrders / limit);
+
+            const orders = await Order.find({})
+                .populate('userId', 'username email phone')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
+
+            const formattedOrders = orders.map((order, index) => ({
+                ...order.toObject(),
+                stt: skip + index + 1, // Cập nhật STT dựa trên trang hiện tại
+                customerName: order.userId ? order.userId.username : 'N/A',
+                phone: order.userId ? order.userId.phone : 'N/A',
+                address: order.address || 'N/A',
+                price: order.price ? order.price.toLocaleString('vi-VN') : '0',
+                createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'N/A'
+            }));
+
+            res.render('admin/transaction', {
+                orders: formattedOrders,
+                currentPage: page,
+                totalPages: totalPages
+            });
+        } catch (err) {
+            console.error('Error in transaction:', err);
+            next(err);
+        }
+    }
+
+    //[GET] /admin/transaction/:id/detail
+    async getOrderDetail(req, res, next) {
+        try {
+            const order = await Order.findById(req.params.id);
+            if (!order) {
+                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+            }
+            res.json(order);
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[PATCH] /admin/transaction/:id/confirm
+    async confirmOrder(req, res, next) {
+        try {
+            await Order.findByIdAndUpdate(
+                req.params.id,
+                { status: 'đang giao' },
+                { new: true }
+            );
+            res.redirect('back');
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[PATCH] /admin/transaction/:id/complete
+    async completeOrder(req, res, next) {
+        try {
+            await Order.findByIdAndUpdate(
+                req.params.id,
+                { status: 'đã giao' },
+                { new: true }
+            );
+            res.redirect('back');
+        } catch (err) {
+            next(err);
+        }
     }
 
     //[DELETE] /admin/transaction/:id
-    deleteOrder(req, res, next) {
-        Order.findByIdAndUpdate(req.params.id, { status: "đã hủy" })
-            .then((order) => {
-                // Cập nhật lại số lượng tồn kho cho từng sản phẩm trong đơn hàng
-                const updatePromises = order.products.map((product) => {
-                    return Product.updateOne(
-                        { name: product.name, "sizes.size": product.size },
-                        { $inc: { "sizes.$.quantity": product.quantity } }
-                    );
-                });
-                
-                // Chờ tất cả các cập nhật hoàn thành
-                return Promise.all(updatePromises);
-            })
-            .then(() => {
-                res.redirect('back');
-            })
-            .catch(next);
-    }
+    async deleteOrder(req, res, next) {
+        try {
+            const order = await Order.findById(req.params.id);
+            if (!order) {
+                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+            }
 
-    //[patch] /admin/transaction/:id/confirm
-    confirmOrder(req, res, next){
-        Order.findByIdAndUpdate(req.params.id, { status: "đang giao" })
-            .then(() => res.redirect('back'))
-            .catch(next)
+            // Hoàn lại số lượng sản phẩm vào kho
+            for (const product of order.products) {
+                await Product.updateOne(
+                    { name: product.name, 'sizes.size': product.size },
+                    { $inc: { 'sizes.$.quantity': product.quantity } }
+                );
+            }
 
-    }
-    completeOrder(req, res, next){
-        Order.findByIdAndUpdate(req.params.id, { status: "đã giao" })
-            .then(() => res.redirect('back'))
-            .catch(next)
-
+            await Order.findByIdAndUpdate(req.params.id, { status: 'đã hủy' });
+            res.redirect('back');
+        } catch (err) {
+            next(err);
+        }
     }
 
     //[GET] /admin/category
@@ -335,31 +408,6 @@ class AdminController{
             res.status(200).json({ message: 'Category deleted successfully' });
         } catch (err) {
             next(err);
-        }
-    }
-
-    //[Get] /admin/transaction/:id/detail
-    async getOrderDetail(req, res, next) {
-        try {
-            const order = await Order.findById(req.params.id)
-                .populate("userId", "username phone")
-                .lean();
-
-            if (!order) {
-                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
-            }
-
-            // Format giá tiền
-            order.price = order.price.toString();
-            order.products = order.products.map(product => ({
-                ...product,
-                price: product.price ? product.price.toString() : '0'
-            }));
-
-            res.json(order);
-        } catch (err) {
-            console.error('Error in getOrderDetail:', err);
-            res.status(500).json({ message: 'Có lỗi xảy ra khi lấy thông tin đơn hàng' });
         }
     }
 }

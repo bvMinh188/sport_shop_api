@@ -254,28 +254,31 @@
     }
 </style>
 
+{{!-- Add Handlebars library before your script --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var orderId;
-        var deleteForm = document.forms['delete-order-form'];
-        var btnDeleteOrder = document.getElementById('btn-delete-order');
-        const messageContainer = document.querySelector('.message-container');
-        const messageElement = messageContainer.querySelector('.message');
+        let orderId;
+        const btnDeleteOrder = document.getElementById('btn-delete-order');
 
-        function showMessage(message, type = 'success') {
-            const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
-            messageElement.innerHTML = `
-                <i class="fas fa-${icon}"></i>
-                <span>${message}</span>
-            `;
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('messageContainer');
+            const messageElement = messageContainer.querySelector('.message');
             
+            messageElement.textContent = message;
             messageElement.className = 'message ' + type;
-            messageContainer.classList.remove('hide');
+            messageContainer.style.visibility = 'visible';
+            messageContainer.style.opacity = '1';
             messageContainer.classList.add('show');
-            
+
             setTimeout(() => {
-                messageContainer.classList.remove('show');
                 messageContainer.classList.add('hide');
+                setTimeout(() => {
+                    messageContainer.style.visibility = 'hidden';
+                    messageContainer.style.opacity = '0';
+                    messageContainer.classList.remove('show', 'hide');
+                }, 300);
             }, 2000);
         }
 
@@ -287,23 +290,26 @@
 
         // Khi nhấn nút "có" trong modal
         btnDeleteOrder.onclick = function() {
+            // Disable the button and show loading state
+            btnDeleteOrder.disabled = true;
+            btnDeleteOrder.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang hủy...';
+            
             $.ajax({
-                url: '/cancel-order/' + orderId + '?_method=DELETE',
+                url: '/order/cancel/' + orderId + '?_method=DELETE',
                 method: 'POST',
                 success: function(response) {
-                    if (response.message === "Hủy đơn hàng thành công") {
-                        showMessage('Hủy đơn hàng thành công', 'success');
-                        setTimeout(() => {
-                            $('#delete-order-modal').modal('hide');
-                            window.location.href = '/account';
-                        }, 2000);
-                    } else {
-                        showMessage(response.message || 'Có lỗi xảy ra', 'error');
-                    }
+                    showMessage('Hủy đơn hàng thành công', 'success');
+                    setTimeout(() => {
+                        $('#delete-order-modal').modal('hide');
+                        window.location.reload();
+                    }, 2000);
                 },
                 error: function(xhr) {
                     console.error('Error:', xhr.responseJSON);
                     showMessage(xhr.responseJSON?.message || 'Có lỗi xảy ra khi hủy đơn hàng', 'error');
+                    // Reset button state on error
+                    btnDeleteOrder.disabled = false;
+                    btnDeleteOrder.innerHTML = 'có';
                 }
             });
         };
@@ -345,7 +351,7 @@
             const data = Object.fromEntries(formData.entries());
 
             try {
-                const response = await fetch('/account/updateprofile', {
+                const response = await fetch('/user/account/updateprofile', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

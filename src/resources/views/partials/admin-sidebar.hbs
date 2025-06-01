@@ -31,10 +31,10 @@
             </a>
         </li>
         <li class="nav-item mt-auto border-top">
-            <a class="nav-link text-white" href="/auth/login" id="admin-logout-btn">
+            <button class="nav-link text-white w-100 text-left border-0 bg-transparent" id="admin-logout-btn">
                 <i class="fas fa-sign-out-alt"></i>
                 Đăng xuất
-            </a>
+            </button>
         </li>
     </ul>
 </div>
@@ -101,9 +101,12 @@ document.addEventListener("DOMContentLoaded", function () {
     if (adminLogoutBtn) {
         adminLogoutBtn.addEventListener("click", function (e) {
             e.preventDefault();
-            fetch("/logout", { method: "POST" })
-                .then(() => {
-                    window.location.href = "/auth/login";
+            fetch("/auth/logout", { method: "POST" })
+                .then(response => response.json())
+                .then(data => {
+                    if(data.message === 'success') {
+                        window.location.href = "/auth/login";
+                    }
                 })
                 .catch(error => console.error("Lỗi đăng xuất:", error));
         });

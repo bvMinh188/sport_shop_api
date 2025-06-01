@@ -3,64 +3,97 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Thông Tin Đơn Hàng</h3>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Thông Tin Đơn Hàng</h3>
+                        {{#if totalPages}}
+                        <nav aria-label="Page navigation" class="mb-0">
+                            <ul class="pagination mb-0">
+                                <li class="page-item {{#if (eq currentPage 1)}}disabled{{/if}}">
+                                    <a class="page-link" href="?page={{subtract currentPage 1}}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {{#times totalPages}}
+                                <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
+                                    <a class="page-link" href="?page={{this}}">{{this}}</a>
+                                </li>
+                                {{/times}}
+                                <li class="page-item {{#if (eq currentPage totalPages)}}disabled{{/if}}">
+                                    <a class="page-link" href="?page={{add currentPage 1}}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        {{/if}}
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
-                            <thead>
-                                <tr>
+        <thead>
+            <tr>
                                     <th style="width: 5%">STT</th>
                                     <th style="width: 15%">Tên khách hàng</th>
                                     <th style="width: 20%">Địa chỉ</th>
                                     <th style="width: 10%">Số điện thoại</th>
                                     <th style="width: 10%">Giá</th>
                                     <th style="width: 15%">Thời gian</th>
-                                    <th style="width: 10%">Trạng thái</th>
-                                    <th style="width: 15%">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {{#each order}}
-                                <tr>
+                                    <th style="width: 12%">Trạng thái</th>
+                                    <th style="width: 13%">Thao tác</th>
+            </tr>
+        </thead>
+        <tbody>
+                                {{#each orders}}
+                <tr>
                                     <td class="text-center">{{sum @index 1}}</td>
-                                    <td>{{this.userId.username}}</td>
+                                    <td>{{this.customerName}}</td>
                                     <td class="address-cell" title="{{this.address}}">{{this.address}}</td>
-                                    <td>{{this.userId.phone}}</td>
+                                    <td class="text-center">{{this.phone}}</td>
                                     <td class="text-end">{{this.price}}</td>
-                                    <td>{{formatDate this.createdAt}}</td>
-                                    <td class="text-center">{{this.status}}</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <button class="btn btn-primary btn-sm btn-view-order" data-bs-toggle="modal" 
-                                                data-bs-target="#detail-order-modal" 
-                                                data-order='{{{json this}}}'>
-                                                <i class="fas fa-eye"></i> Xem
-                                            </button>
-                                            {{#if (eq this.status "chờ xác nhận")}}
-                                                <button class="btn btn-success btn-sm btn-confirm" data-id="{{this._id}}">
-                                                    <i class="fas fa-check"></i> Xác nhận
-                                                </button>
-                                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-id="{{this._id}}" data-bs-target="#delete-order-modal">
-                                                    <i class="fas fa-times"></i> Hủy
-                                                </button>
-                                            {{/if}}
-                                            {{#if (eq this.status "đang giao")}}
-                                                <button class="btn btn-success btn-sm btn-complete" data-id="{{this._id}}">
-                                                    <i class="fas fa-check-double"></i> Giao thành công
-                                                </button>
-                                            {{/if}}
-                                        </div>
+                                    <td class="text-center">{{formatDate this.createdAt}}</td>
+                                    <td class="text-center">
+                                        <span class="badge rounded-pill {{#if (eq this.status 'chờ xác nhận')}}bg-warning{{/if}}
+                                            {{#if (eq this.status 'đang giao')}}bg-primary{{/if}}
+                                            {{#if (eq this.status 'đã giao')}}bg-success{{/if}}
+                                            {{#if (eq this.status 'đã hủy')}}bg-danger{{/if}}">
+                                            {{this.status}}
+                                        </span>
                                     </td>
-                                </tr>
-                                {{/each}}
-                            </tbody>
-                        </table>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
+                                data-bs-target="#detail-order-modal" 
+                                data-order='{{{json this}}}'>
+                                Xem
+                            </button>
+
+                            {{#if (eq this.status "chờ xác nhận")}}
+                                <button class="btn btn-success btn-sm btn-confirm" data-id="{{this._id}}">
+                                    Xác nhận
+                                </button>
+                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                    data-id="{{this._id}}" data-bs-target="#delete-order-modal">
+                                    Hủy
+                                </button>
+                            {{/if}}
+
+                            {{#if (eq this.status "đang giao")}}
+                                <button class="btn btn-success btn-sm btn-complete" data-id="{{this._id}}">
+                                    Hoàn thành
+                                </button>
+                            {{/if}}
+                        </div>
+                    </td>
+                </tr>
+            {{/each}}
+        </tbody>
+    </table>
                     </div>
 
-                    {{#unless order.length}}
+                    {{#unless orders.length}}
                     <div class="alert alert-info text-center mt-3">
-                        Không tìm thấy đơn hàng nào.
+                        <i class="fas fa-info-circle me-2"></i>Không tìm thấy đơn hàng nào.
                     </div>
                     {{/unless}}
                 </div>
@@ -69,20 +102,20 @@
     </div>
 </div>
 
-<!-- Modal Xem Đơn Hàng -->
+<!-- Modal Chi tiết đơn hàng -->
 <div id="detail-order-modal" class="modal fade" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header">
                 <h5 class="modal-title">Chi tiết đơn hàng</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <div class="order-info mb-4">
-                    <h6 class="text-primary mb-3">Thông tin đơn hàng</h6>
+                    <h6 class="border-bottom pb-2">Thông tin khách hàng</h6>
                     <div class="row">
                         <div class="col-md-6">
-                            <p><strong>Khách hàng:</strong> <span id="customer-name"></span></p>
+                            <p><strong>Tên khách hàng:</strong> <span id="customer-name"></span></p>
                             <p><strong>Số điện thoại:</strong> <span id="customer-phone"></span></p>
                         </div>
                         <div class="col-md-6">
@@ -91,8 +124,23 @@
                         </div>
                     </div>
                 </div>
-                <h6 class="text-primary mb-3">Danh sách sản phẩm</h6>
-                <div id="order-products" class="row g-3"></div>
+                <div class="order-products">
+                    <h6 class="border-bottom pb-2">Danh sách sản phẩm</h6>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>STT</th>
+                                    <th>Tên sản phẩm</th>
+                                    <th>Size</th>
+                                    <th>Số lượng</th>
+                                </tr>
+                            </thead>
+                            <tbody id="order-products">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
@@ -104,31 +152,37 @@
 <!-- Modal Xác Nhận Hủy -->
 <div id="delete-order-modal" class="modal fade" tabindex="-1">
     <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" style="color: blue;">Xác nhận hủy</h5>
+    <div class="modal-content">
+      <div class="modal-header">
+                <h5 class="modal-title">Xác nhận hủy</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>
-                <p style="color: #dc3545;">Hành động này không thể hoàn tác.</p>
-            </div>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>
+                <p class="text-danger">Hành động này không thể hoàn tác.</p>
+      </div>
             <div class="modal-footer" style="justify-content: center; gap: 10px;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width: 100px;">Hủy</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width: 100px;">Không</button>
                 <button id="btn-delete-order" type="button" class="btn btn-danger" style="min-width: 100px;">Xác nhận</button>
-            </div>
-        </div>
+      </div>
     </div>
+  </div>
 </div>
 
 {{!-- Form Ẩn --}}
-<form name="delete-order-form" method="POST" style="display: none;">
+<form name="delete-order-form" method="POST" action="" class="d-none">
     <input type="hidden" name="_method" value="DELETE">
 </form>
+
 {{!-- Form xác nhận --}}
-<form name="confirm-order-form" method="POST"></form>
-{{!-- Form giao thành công --}}
-<form name="complete-order-form" method="POST"></form>
+<form name="confirm-order-form" method="POST" action="" class="d-none">
+    <input type="hidden" name="_method" value="PATCH">
+</form>
+
+{{!-- Form hoàn thành --}}
+<form name="complete-order-form" method="POST" action="" class="d-none">
+    <input type="hidden" name="_method" value="PATCH">
+</form>
 
 <style>
 .action-buttons {
@@ -154,195 +208,93 @@
 
 .address-cell {
     max-width: 200px;
-    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
-.text-end {
-    text-align: right;
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
 }
 
-.text-center {
-    text-align: center;
-}
-
-/* Style cho modal */
 .modal-content {
     border-radius: 8px;
-    border: none;
 }
 
-.modal-header {
-    border-bottom: none;
-    padding: 20px 20px 10px;
+.modal-header, .modal-footer {
+    padding: 1rem;
 }
 
 .modal-body {
-    padding: 20px;
-    text-align: center;
-}
-
-.modal-footer {
-    border-top: none;
-    padding: 10px 20px 20px;
-}
-
-.btn {
-    border-radius: 4px;
-    font-weight: 500;
-}
-
-.btn i {
-    margin-right: 5px;
-}
-
-#order-products .card {
-    height: 100%;
-    border: none;
-    box-shadow: 0 0 10px rgba(0,0,0,.1);
-}
-
-#order-products .card-img-top {
-    height: 150px;
-    object-fit: cover;
-}
-
-/* Style cho modal chi tiết đơn hàng */
-#detail-order-modal .modal-content {
-    border: none;
-    border-radius: 8px;
-}
-
-#detail-order-modal .modal-header {
-    border-radius: 8px 8px 0 0;
-}
-
-#detail-order-modal .modal-body {
-    padding: 20px;
-}
-
-#detail-order-modal .order-info {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 8px;
-}
-
-#detail-order-modal .card {
-    transition: transform 0.2s;
-}
-
-#detail-order-modal .card:hover {
-    transform: translateY(-5px);
-}
-
-#detail-order-modal .card-title {
-    font-size: 1rem;
-    margin-bottom: 0.5rem;
-}
-
-#detail-order-modal .badge {
-    font-weight: normal;
-    padding: 0.5em 0.8em;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    #detail-order-modal .col-md-6 {
-        margin-bottom: 1rem;
-    }
+    padding: 1rem;
 }
 </style>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const orderProductsContainer = document.getElementById('order-products');
-
-    // Tooltip cho địa chỉ
-    const addresses = document.querySelectorAll('.address-cell');
-    addresses.forEach(cell => {
-        $(cell).tooltip({
-            placement: 'top',
-            trigger: 'hover'
-        });
-    });
-
-    // Khi modal "Xem Đơn Hàng" được kích hoạt
+    // Xử lý modal xem chi tiết đơn hàng
     $('#detail-order-modal').on('show.bs.modal', function (event) {
+        try {
+            const button = $(event.relatedTarget);
+            const orderData = button.data('order');
+
+            // Hiển thị thông tin đơn hàng
+            $('#customer-name').text(orderData.customerName || 'N/A');
+            $('#customer-phone').text(orderData.phone || 'N/A');
+            $('#customer-address').text(orderData.address || 'N/A');
+            $('#order-total').text(orderData.price + ' VND');
+
+            // Hiển thị danh sách sản phẩm
+            const orderProductsContainer = document.getElementById('order-products');
+            orderProductsContainer.innerHTML = '';
+            
+            if (Array.isArray(orderData.products)) {
+                orderData.products.forEach((product, index) => {
+                    const row = `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${product.name || 'N/A'}</td>
+                            <td>${product.size || 'N/A'}</td>
+                            <td>${product.quantity || '0'}</td>
+                        </tr>`;
+                    orderProductsContainer.insertAdjacentHTML('beforeend', row);
+                });
+            } else {
+                orderProductsContainer.innerHTML = '<tr><td colspan="4" class="text-center">Không có sản phẩm nào</td></tr>';
+            }
+        } catch (error) {
+            alert('Có lỗi xảy ra khi hiển thị chi tiết đơn hàng');
+        }
+    });
+
+    // Xử lý nút xác nhận đơn hàng
+    $('.btn-confirm').click(function(event) {
+        event.preventDefault();
+        const orderId = $(this).data('id');
+        const form = document.forms['confirm-order-form'];
+        form.action = '/admin/transaction/' + orderId + '/confirm?_method=PATCH';
+        form.submit();
+    });
+
+    // Xử lý nút hoàn thành đơn hàng
+    $('.btn-complete').click(function(event) {
+        event.preventDefault();
+        const orderId = $(this).data('id');
+        const form = document.forms['complete-order-form'];
+        form.action = '/admin/transaction/' + orderId + '/complete?_method=PATCH';
+        form.submit();
+    });
+
+    // Xử lý nút hủy đơn hàng
+    $('#delete-order-modal').on('show.bs.modal', function(event) {
         const button = $(event.relatedTarget);
-        const orderData = button.data('order');
+        const orderId = button.data('id');
+        const form = document.forms['delete-order-form'];
         
-        // Cập nhật thông tin đơn hàng
-        $('#customer-name').text(orderData.userId.username);
-        $('#customer-phone').text(orderData.userId.phone);
-        $('#customer-address').text(orderData.address);
-        
-        // Format tổng tiền với dấu phân cách hàng nghìn
-        const formattedPrice = orderData.price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-        $('#order-total').text(formattedPrice);
-
-        // Xóa nội dung cũ
-        orderProductsContainer.innerHTML = '';
-
-        // Hiển thị chi tiết sản phẩm
-        orderData.products.forEach(product => {
-            const productHtml = `
-                <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 border-0 shadow-sm">
-                        <div class="position-relative">
-                            <img src="${product.image}" class="card-img-top" alt="${product.name}" style="height: 200px; object-fit: cover;">
-                            <div class="position-absolute bottom-0 end-0 p-2 bg-primary text-white">
-                                Size: ${product.size}
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <h6 class="card-title text-truncate" title="${product.name}">${product.name}</h6>
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <span class="badge bg-info">Số lượng: ${product.quantity}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            orderProductsContainer.insertAdjacentHTML('beforeend', productHtml);
+        $('#btn-delete-order').off('click').on('click', function() {
+            form.action = '/admin/transaction/' + orderId + '?_method=DELETE';
+            form.submit();
         });
     });
-
-    var orderId;
-    var deleteForm = document.forms['delete-order-form'];
-    var btnDeleteOrder = document.getElementById('btn-delete-order');
-    // Khi modal "Xóa Đơn Hàng" được kích hoạt
-    $('#delete-order-modal').on('show.bs.modal', function(event) {
-        var button = $(event.relatedTarget);  // Lấy button đã kích hoạt modal
-        orderId = button.data('id');  // Lấy ID của đơn hàng
-    });
-    // Khi nhấn nút "Xóa" trong modal
-    btnDeleteOrder.onclick = function() {
-        deleteForm.action = '/admin/transaction/' + orderId + '?_method=DELETE';  // Đặt URL action của form
-        deleteForm.submit();  // Gửi form
-    };
-
-    //xác nhận
-    var confirmBtn =$('.btn-confirm');
-    var confirmForm = document.forms['confirm-order-form']
-    confirmBtn.click(function (event){
-        event.preventDefault();
-        var orderId = $(this).data('id');
-        confirmForm.action = '/admin/transaction/' + orderId +'/confirm?_method=PATCH';
-        confirmForm.submit();
-    });
-
-    //giao thành công
-    var completeBtn = $('.btn-complete');
-    var completeForm = document.forms['complete-order-form']
-    completeBtn.click(function(event){
-        event.preventDefault();
-        var orderId =$(this).data('id');
-        console.log(orderId)
-        completeForm.action = '/admin/transaction/' + orderId +'/complete?_method=PATCH';
-        completeForm.submit();
-    });
-});
-</script>
+});</script>

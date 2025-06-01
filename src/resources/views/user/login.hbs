@@ -1,94 +1,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng Ký</title>
-    <style>
-        h2{
-            color: rgb(36, 198, 130);
-        }
-        body {
-            background-image: url('https://noithatnamviet.com/wp-content/uploads/2022/04/shop-giay-sneaker.jpg');
-            background-size: cover;
-            background-position: center;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center; 
-        }
-        label{
-            color: aliceblue;
-        }
-    </style>
+    <title>Đăng Nhập</title>
+    <link rel="stylesheet" href="/css/auth.css">
 </head>
+<body class="auth-page">
+    <div class="auth-container">
+        <h2>Đăng Nhập</h2>
+        <div id="message" class="alert"></div>
 
-<form class="mt-4" id="form-login">
-    <div class="mb-3">
-        <label for="email">Email</label>
-        <input type="email" class="form-control" id="email" name="email" placeholder="nva@gmail.com" required>
+        <form id="form-login">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="nva@gmail.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="*****" required>
+            </div>
+            <button type="submit" class="btn-primary">Đăng nhập</button>
+            <div class="auth-links">
+                <p>Chưa có tài khoản? <a href="/auth/register">Đăng ký ngay</a></p>
+                <p><a href="/auth/forgot-password">Quên mật khẩu?</a></p>
+            </div>
+        </form>
     </div>
-    <div class="mb-3">
-        <label for="password">Mật khẩu</label>
-        <input type="password" class="form-control" id="password" name="password" placeholder="*****" required>
-    </div>
-    <button type="submit" class="btn btn-danger w-100">Đăng nhập</button>
-    <div class="text-center mt-3">
-        <p style="color: aliceblue;">Chưa có tài khoản? <a href="/register" class="text-danger">Đăng ký ngay</a></p>
-        <p style="color: aliceblue;"><a href="/forgot-password" class="text-danger">Quên mật khẩu?</a></p>
-    </div>
-</form>
 
-<script>
-    function setCookie(cname, cvalue, exdays) {
-        const d = new Date();
-        d.setTime(d.getTime() + (exdays*24*60*60*1000));
-        let expires = "expires="+ d.toUTCString();
-        document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
-    }
+    <!-- Add jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    function getCookie(cname) {
-        let name = cname + "=";
-        let decodedCookie = decodeURIComponent(document.cookie);
-        let ca = decodedCookie.split(';');
-        for(let i = 0; i <ca.length; i++) {
-            let c = ca[i];
-            while (c.charAt(0) == ' ') {
-            c = c.substring(1);
+    <script>
+        $(document).ready(function () {
+            function showMessage(message, type) {
+                const messageDiv = $("#message");
+                messageDiv.removeClass("alert-danger alert-success")
+                    .addClass(type === "error" ? "alert-danger" : "alert-success")
+                    .text(message)
+                    .show();
+                
+                setTimeout(() => {
+                    messageDiv.fadeOut();
+                }, 3000);
             }
-            if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-            }
-        }
-        return "";
-    }
 
-    $(document).ready(function () {
-        $("#form-login").submit(function(event){
-            event.preventDefault();
+            $("#form-login").submit(function(event) {
+                event.preventDefault();
 
-            var email = $("#email").val();
-            var password = $("#password").val()
-
-            $.ajax({
-                url: "/auth/logined",
-                method: "POST",
-                data: {
-                    email: $("#email").val(),
-                    password: $("#password").val()
-                },
-                success: function(response){
-                    if(response.message == 'admin'){
-                        window.location.href = "/admin/home";
-                    }else if(response.message == 'user'){
-                        window.location.href = "/";
-                    }else{
-                        alert(response.message);
+                $.ajax({
+                    url: "/auth/logined",
+                    method: "POST",
+                    data: {
+                        email: $("#email").val(),
+                        password: $("#password").val()
+                    },
+                    success: function(response) {
+                        if(response.message === 'admin') {
+                            showMessage("Đăng nhập thành công!", "success");
+                            setTimeout(() => {
+                                window.location.href = "/admin/home";
+                            }, 1500);
+                        } else if(response.message === 'user') {
+                            showMessage("Đăng nhập thành công!", "success");
+                            setTimeout(() => {
+                                window.location.href = "/";
+                            }, 1500);
+                        } else {
+                            showMessage(response.message, "error");
+                        }
+                    },
+                    error: function(xhr) {
+                        showMessage("Đã xảy ra lỗi trong quá trình đăng nhập", "error");
                     }
-                },
-                error: function() {
-                    alert("Đã xảy ra lỗi trong quá trình đăng nhập")
-                }
-            }) 
-        })
-    })
-</script>
+                });
+            });
+        });
+    </script>
+</body>
        

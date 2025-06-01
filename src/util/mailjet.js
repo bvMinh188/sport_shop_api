@@ -1,8 +1,8 @@
 const Mailjet = require('node-mailjet');
 
 const mailjet = new Mailjet({
-    apiKey: '2967004aa1856c3f4a583e7c155c3d15',
-    apiSecret: 'c23bd622f07d7a08b6d2a992c08d7d37'
+    apiKey: 'c178a3eecb40b98dcd62e22267ac2c50',
+    apiSecret: '7f351d66f90d5e86a686faf8acf86b28'
 });
 
 const sendPasswordResetEmail = async (email, resetToken) => {
@@ -15,7 +15,7 @@ const sendPasswordResetEmail = async (email, resetToken) => {
             Messages: [
                 {
                     From: {
-                        Email: "sportshop.web@gmail.com", // Thay email này bằng email đã verify trong Mailjet
+                        Email: "n21dccn052@student.ptithcm.edu.vn", // Sử dụng email đã được verify
                         Name: "Sport Shop"
                     },
                     To: [
@@ -33,7 +33,7 @@ const sendPasswordResetEmail = async (email, resetToken) => {
                             <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
                             <p>Vui lòng click vào nút bên dưới để đặt lại mật khẩu:</p>
                             <div style="text-align: center; margin: 30px 0;">
-                                <a href="http://localhost:3000/reset-password/${resetToken}"
+                                <a href="http://localhost:3000/auth/reset-password/${resetToken}"
                                    style="background-color: #f44336; 
                                           color: white; 
                                           padding: 12px 30px; 

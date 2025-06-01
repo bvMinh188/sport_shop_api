@@ -2,6 +2,7 @@ const Cart = require('../models/Cart');
 const Product = require('../models/Product');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const User = require('../models/User');
 dotenv.config();
 
 const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
@@ -82,15 +83,19 @@ class CartController {
         if (token) {
             try {
                 const decodeToken = jwt.verify(token, SECRET_CODE);
-                Cart.find({ userId: decodeToken._id })
-                    .then(cart => {
+                Promise.all([
+                    Cart.find({ userId: decodeToken._id }),
+                    User.findById(decodeToken._id)
+                ])
+                    .then(([cart, user]) => {
                         const array = cart.map(product => {
                             return product.price * product.quantity
                         });
                         const tong = array.reduce((total, value) => total + value, 0);
                         res.render('user/order', {
                             cart: mutipleMongooseToObject(cart),
-                            tong: tong
+                            tong: tong,
+                            userInfo: mongooseToObject(user)
                         });
                     })
                     .catch(next);

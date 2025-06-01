@@ -5,6 +5,7 @@ const methodOverride = require('method-override');
 const handlebars = require("express-handlebars");
 const dotenv = require("dotenv");
 const cookieParser = require('cookie-parser');
+const { checkLogin } = require('./middleware/auth');
 
 const route = require('./routes');
 const db = require('./config/db');
@@ -47,6 +48,9 @@ app.use(methodOverride('_method'));
 // HTTP logger
 app.use(morgan("combined"));
 
+// Apply authentication middleware globally
+app.use(checkLogin);
+
 // Template engine
 app.engine("hbs", handlebars.engine({
   extname: '.hbs',
@@ -69,6 +73,16 @@ app.engine("hbs", handlebars.engine({
       let list = [];
       for (let i = start; i <= end; i++) list.push(i);
       return list;
+    },
+    // Helper cho phân trang
+    times: function(n, block) {
+      var accum = '';
+      for(var i = 1; i <= n; ++i)
+          accum += block.fn(i);
+      return accum;
+    },
+    add: function(a, b) {
+      return a + b;
     },
     // Định dạng giá tiền (VD: 1.000.000)
     formatCurrency: (amount) => {
