@@ -345,7 +345,7 @@
         }
 
         $.ajax({
-            url: `/order/${idProduct}`,
+            url: `/cart/add/${idProduct}`,
             method: "POST",
             data: { size: size, quantity: quantity },
             success: function(response) {

@@ -359,7 +359,7 @@ $(document).ready(function(){
                 deleteProduct(productId, size)
             } else {
                 $.ajax({
-                    url: `/update-order/${productId}`,
+                    url: `/cart/update/${productId}`,
                     method: 'POST',
                     data: {
                         size: size,
@@ -413,7 +413,7 @@ $(document).ready(function(){
         btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
 
         $.ajax({
-            url: `/delete-cart/${deleteProductData.id}?size=${deleteProductData.size}`,
+            url: `/cart/delete/${deleteProductData.id}?size=${deleteProductData.size}`,
             method: 'DELETE',
             success: function(response) {
                 $('#deleteConfirmModal').modal('hide');
