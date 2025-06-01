@@ -46,45 +46,7 @@ const checkLogin = (req, res, next) => {
     }
 };
 
-// Authentication routes
-router.get('/register', siteController.register);
-router.get('/login', checkLogin, siteController.login);
-router.post('/logined', siteController.logined);
-router.post('/logout', function (req, res) {
-    res.clearCookie('token', {
-        httpOnly: true,
-        sameSite: 'Lax',
-        secure: false, // Đổi thành true nếu bạn dùng HTTPS
-        path: '/'
-    });
-    res.status(200).json({ message: 'Đã đăng xuất' });
-});
-router.post('/signup', siteController.signUp);
-
-// Password reset routes
-router.get('/forgot-password', siteController.forgotPassword);
-router.post('/forgot-password', siteController.handleForgotPassword);
-router.get('/reset-password/:token', siteController.showResetPassword);
-router.post('/reset-password', siteController.handleResetPassword);
-
-// Order routes
-router.post('/order/:id', siteController.addProductCart);
-router.get('/order', checkLogin, siteController.showOrder);
-router.post('/checkout', checkLogin, siteController.checkout);
-router.post('/update-order/:id', checkLogin, siteController.updateOrder);
-router.delete('/delete-cart/:id', checkLogin, siteController.deleteCartItem);
-router.delete('/cancel-order/:id', checkLogin, siteController.cancelOrder);
-
-// User profile and address routes
-router.get('/account', checkLogin, siteController.profile);
-router.post('/add-address', checkLogin, siteController.addAddress);
-router.post('/set-default-address', checkLogin, siteController.setDefaultAddress);
-
-// Search and product routes
-router.get('/search', checkLogin, siteController.search);
-router.get('/:slug', siteController.showProduct);
+// Site routes
 router.get('/', checkLogin, siteController.index);
-
-router.post('/account/updateprofile', checkLogin, siteController.updateProfile);
 
 module.exports = router;

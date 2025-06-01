@@ -42,7 +42,7 @@
                         {{else}}
                             <!-- User Navigation -->
                             <li class="nav-item">
-                                <a href="/account" class="btn custom-btn">
+                                <a href="/user/profile" class="btn custom-btn">
                                     <img class="account-icon" src="https://png.pngtree.com/png-vector/20191009/ourmid/pngtree-user-icon-png-image_1796659.jpg" alt="thông tin cá nhân">
                                     <span>Tài khoản</span>
                                 </a>
@@ -62,7 +62,7 @@
                     {{else}}
                         <!-- Guest Navigation -->
                         <li class="nav-item">
-                            <a href="/login" class="btn custom-btn">
+                            <a href="/auth/login" class="btn custom-btn">
                                 <img class="login-icon" src="https://e7.pngegg.com/pngimages/713/762/png-clipart-computer-icons-button-login-image-file-formats-logo-thumbnail.png" alt="Đăng nhập">
                                 <span>Đăng nhập</span>
                             </a>
@@ -88,7 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
         logoutBtn.addEventListener("click", function () {
             fetch("/logout", { method: "POST" })
                 .then(() => {
-                    window.location.href = "/";
+                    window.location.href = "/auth/login";
                 })
                 .catch(error => console.error("Lỗi đăng xuất:", error));
         });

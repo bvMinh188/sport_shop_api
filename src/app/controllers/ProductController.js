@@ -2,6 +2,14 @@ const Product = require('../models/Product')
 const Category = require('../models/Category')
 const { mongooseToObject, mutipleMongooseToObject } = require('../../util/mongoose')
 const slugify = require('slugify')
+const User = require('../models/User')
+const jwt = require('jsonwebtoken')
+const dotenv = require('dotenv')
+const axios = require('axios')
+
+dotenv.config()
+
+const SECRET_CODE = process.env.SECRET_CODE || 'Minh'
 
 class ProductController{
     
@@ -291,6 +299,209 @@ class ProductController{
                 product: { ...req.body, _id: req.params.id },
                 categories: await Category.find({}).lean()
             });
+        }
+    }
+
+    // [GET] /products/:slug
+    async showProduct(req, res, next) {
+        const slug = req.params.slug;
+        const token = req.cookies.token;
+
+        // Kiểm tra và lấy thông tin user nếu đã đăng nhập
+        const getUserInfo = token ? 
+            new Promise((resolve) => {
+                try {
+                    const decodeToken = jwt.verify(token, SECRET_CODE);
+                    User.findById(decodeToken._id)
+                        .lean()
+                        .then(user => resolve(user))
+                        .catch(() => resolve(null));
+                } catch (err) {
+                    resolve(null);
+                }
+            })
+            : Promise.resolve(null);
+
+        try {
+            const [product, user] = await Promise.all([
+                Product.findOne({ slug: slug }).lean(),
+                getUserInfo
+            ]);
+
+            if (!product) {
+                return res.status(404).render('errors/404', { 
+                    message: "Không tìm thấy sản phẩm.",
+                    user: user
+                });
+            }
+
+            const apiUrl = `http://localhost:5555/api?id=${product._id.toString()}`;
+
+            // Gọi API để lấy sản phẩm gợi ý
+            try {
+                const response = await axios.get(apiUrl);
+                if (response.data && response.data['san pham goi y']) {
+                    const suggestedIds = response.data['san pham goi y'];
+                    const suggestedProducts = await Product.find({ _id: { $in: suggestedIds } })
+                        .select('name image price slug')
+                        .lean();
+
+                    return res.render('products/show', {
+                        product: product,
+                        products: suggestedProducts,
+                        user: user
+                    });
+                }
+                
+                // Nếu không có sản phẩm gợi ý
+                res.render('products/show', {
+                    product: product,
+                    products: [],
+                    user: user
+                });
+            } catch (error) {
+                console.error("Lỗi khi lấy dữ liệu sản phẩm gợi ý từ API:", error.message);
+                res.render('products/show', {
+                    product: product,
+                    products: [],
+                    user: user
+                });
+            }
+        } catch (err) {
+            console.error("Lỗi khi truy vấn sản phẩm:", err);
+            next(err);
+        }
+    }
+
+    // [GET] /products/search
+    async search(req, res) {
+        try {
+            const searchQuery = req.query.q || '';
+            
+            if (!searchQuery.trim()) {
+                return res.redirect('/');
+            }
+
+            const searchRegex = new RegExp(searchQuery.trim(), 'i');
+
+            const products = await Product.find({
+                $or: [
+                    { name: searchRegex },
+                    { description: searchRegex },
+                    { category: searchRegex }
+                ]
+            }).lean();
+
+            res.render('products/search', {
+                products,
+                searchQuery,
+                title: `Kết quả tìm kiếm cho "${searchQuery}"`,
+                user: res.locals.user
+            });
+        } catch (error) {
+            console.error('Search error:', error);
+            res.status(500).render('error', {
+                message: 'Đã xảy ra lỗi trong quá trình tìm kiếm',
+                user: res.locals.user
+            });
+        }
+    }
+
+    // [GET] /products/category/:category
+    async getByCategory(req, res, next) {
+        try {
+            const category = req.params.category;
+            const page = parseInt(req.query.page) || 1;
+            const limit = 12;
+            const skip = (page - 1) * limit;
+
+            const [products, totalProducts, categories] = await Promise.all([
+                Product.find({ category: category })
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+                Product.countDocuments({ category: category }),
+                Product.distinct("category")
+            ]);
+
+            const totalPages = Math.ceil(totalProducts / limit);
+
+            res.render('products/category', {
+                products: products,
+                category: category,
+                categories: categories,
+                currentPage: page,
+                totalPages: totalPages,
+                user: res.locals.user
+            });
+        } catch (error) {
+            console.error('Category error:', error);
+            next(error);
+        }
+    }
+
+    // [GET] /products/filter
+    async filter(req, res, next) {
+        try {
+            const { minPrice, maxPrice, category, sort } = req.query;
+            const page = parseInt(req.query.page) || 1;
+            const limit = 12;
+            const skip = (page - 1) * limit;
+
+            let query = {};
+
+            // Lọc theo giá
+            if (minPrice || maxPrice) {
+                query.price = {};
+                if (minPrice) query.price.$gte = parseInt(minPrice);
+                if (maxPrice) query.price.$lte = parseInt(maxPrice);
+            }
+
+            // Lọc theo danh mục
+            if (category) {
+                query.category = category;
+            }
+
+            // Tạo query để sắp xếp
+            let sortQuery = {};
+            if (sort === 'price_asc') {
+                sortQuery.price = 1;
+            } else if (sort === 'price_desc') {
+                sortQuery.price = -1;
+            } else if (sort === 'newest') {
+                sortQuery.createdAt = -1;
+            } else if (sort === 'bestseller') {
+                sortQuery.sold = -1;
+            }
+
+            const [products, totalProducts, categories] = await Promise.all([
+                Product.find(query)
+                    .sort(sortQuery)
+                    .skip(skip)
+                    .limit(limit)
+                    .lean(),
+                Product.countDocuments(query),
+                Product.distinct("category")
+            ]);
+
+            const totalPages = Math.ceil(totalProducts / limit);
+
+            res.render('products/filter', {
+                products: products,
+                categories: categories,
+                currentPage: page,
+                totalPages: totalPages,
+                filters: {
+                    minPrice,
+                    maxPrice,
+                    category,
+                    sort
+                },
+                user: res.locals.user
+            });
+        } catch (error) {
+            console.error('Filter error:', error);
+            next(error);
         }
     }
 }

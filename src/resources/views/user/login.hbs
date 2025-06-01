@@ -69,7 +69,7 @@
             var password = $("#password").val()
 
             $.ajax({
-                url: "/logined",
+                url: "/auth/logined",
                 method: "POST",
                 data: {
                     email: $("#email").val(),

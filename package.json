@@ -33,7 +33,8 @@
     "mongoose": "^8.7.0",
     "mongoose-slug-updater": "^3.3.0",
     "node-mailjet": "^6.0.8",
-    "slugify": "^1.6.6"
+    "slugify": "^1.6.6",
+    "sport_shop": "file:"
   },
   "devDependencies": {
     "mongoose-delete": "^1.0.2",
