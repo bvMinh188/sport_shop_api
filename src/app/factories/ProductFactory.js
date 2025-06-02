@@ -1,4 +1,4 @@
-const Product = require('../entities/Product');
+const Product = require('../models/Product');
 
 class ProductFactory {
     createProduct(productData) {
@@ -19,6 +19,7 @@ class ProductFactory {
                 break;
         }
 
+        // Trả về instance của model Mongoose
         return new Product({
             name,
             price,

@@ -46,8 +46,10 @@ class ProductController {
     async edit(req, res, next) {
         try {
             const product = await productRepo.findById(req.params.id);
-            res.render('products/edit', {
-                product: mongooseToObject(product)
+            const categories = await Category.find({}).lean();
+            res.render('admin/editProduct', {
+                product: mongooseToObject(product),
+                categories: categories
             });
         } catch (err) {
             next(err);
@@ -113,7 +115,7 @@ class ProductController {
                 sizes: formattedSizes,
                 slug
             });
-            res.redirect('/admin/stored/products');
+            res.redirect('/admin/product');
         } catch (err) {
             next(err);
         }

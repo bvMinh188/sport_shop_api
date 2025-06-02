@@ -27,7 +27,7 @@
                     <div id="saveButtonContainer" style="display: none;">
                         <button type="submit" class="btn btn-primary">Lưu thông tin</button>
                         <button type="button" id="cancelButton" class="btn btn-secondary">Hủy</button>
-                    </div>
+                    </div>      
                 </form>
             </div>
         </div>
@@ -39,32 +39,32 @@
                 {{#each order}}
                 <div class="order-item mb-4 p-3 border rounded">
                     <div class="order-id mb-3">
-                        <strong>Mã đơn hàng:</strong> {{this._id}}
-                    </div>
+                                <strong>Mã đơn hàng:</strong> {{this._id}}
+                            </div>
                     <div class="products-container">
                         {{#each this.products}}
                             <div class="order-product mb-3 p-3 border rounded bg-light">
                                 <div class="product-info">
                                     <div class="product-name mb-2">
-                                        <strong>Tên sản phẩm:</strong> {{this.name}}
-                                    </div>
+                                <strong>Tên sản phẩm:</strong> {{this.name}}
+                            </div>
                                     <div class="d-flex justify-content-between">
                                         <div class="product-size">
-                                            <strong>Size:</strong> {{this.size}}
-                                        </div>
+                                <strong>Size:</strong> {{this.size}}
+                            </div>
                                         <div class="product-quantity">
-                                            <strong>Số lượng:</strong> {{this.quantity}}
+                                <strong>Số lượng:</strong> {{this.quantity}}
                                         </div>
                                     </div>
-                                </div>
                             </div>
-                        {{/each}}
+                        </div>
+                    {{/each}}
                     </div>
                     <div class="order-details mt-3 pt-3 border-top">
                         <div class="order-shop mb-2">
                             🛒 <strong>Tổng giá:</strong> {{formatCurrency this.price}}đ
-                        </div>
-                        <div class="order-date mb-2">
+                    </div>
+                    <div class="order-date mb-2">
                             <strong>Thời gian đặt hàng:</strong> {{formatDate this.createdAt}}
                         </div>
                         <div class="order-address mb-2">
@@ -76,7 +76,7 @@
                         {{#if (or (eq this.status "chờ xác nhận") (eq this.status "đã xác nhận") (eq this.status "đang giao hàng"))}}
                             <div class="text-right">
                                 <button class="btn btn-danger" data-toggle="modal" data-id="{{this._id}}" data-target="#delete-order-modal">Hủy đơn hàng</button>
-                            </div>
+                    </div>
                         {{/if}}
                     </div>
                 </div>

@@ -14,7 +14,7 @@ const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
 // Map status tiếng Việt sang tiếng Anh
 const STATUS_MAP = {
     'chờ xác nhận': 'pending',
-    'đang giao': 'shipping',
+    'đang giao hàng': 'shipping',
     'đã giao': 'delivered',
     'đã hủy': 'cancelled'
 };
@@ -152,90 +152,102 @@ class OrderController {
         }
     }
 
-    // [GET] /admin/transaction
+    //[GET] /admin/transaction
     async transaction(req, res, next) {
         try {
-            const orders = await Order.find().populate("userId", "username phone");
-            res.render('admin/transaction', { 
-                order: mutipleMongooseToObject(orders)
+            const page = parseInt(req.query.page) || 1;
+            const limit = 10; // số đơn hàng mỗi trang
+            const skip = (page - 1) * limit;
+
+            // Đếm tổng số đơn hàng
+            const totalOrders = await Order.countDocuments({});
+            const totalPages = Math.ceil(totalOrders / limit);
+
+            const orders = await Order.find({})
+                .populate('userId', 'username email phone')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
+
+            const formattedOrders = orders.map((order, index) => ({
+                ...order.toObject(),
+                stt: skip + index + 1, // Cập nhật STT dựa trên trang hiện tại
+                customerName: order.userId ? order.userId.username : 'N/A',
+                phone: order.userId ? order.userId.phone : 'N/A',
+                address: order.address || 'N/A',
+                price: order.price ? order.price.toLocaleString('vi-VN') : '0',
+                createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'N/A'
+            }));
+
+            res.render('admin/transaction', {
+                orders: formattedOrders,
+                currentPage: page,
+                totalPages: totalPages
             });
         } catch (err) {
+            console.error('Error in transaction:', err);
             next(err);
         }
     }
 
-    // [PATCH] /admin/transaction/cancel/:id
-    async adminCancelOrder(req, res, next) {
+    //[GET] /admin/transaction/:id/detail
+    async getOrderDetail(req, res, next) {
         try {
             const order = await Order.findById(req.params.id);
             if (!order) {
                 return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
             }
-
-            // Sử dụng State Pattern để hủy đơn hàng
-            const success = await order.cancelOrder();
-            if (!success) {
-                return res.status(400).json({ 
-                    message: 'Không thể hủy đơn hàng này do trạng thái không phù hợp',
-                    currentStatus: order.status
-                });
-            }
-
-            // Cập nhật lại số lượng tồn kho cho từng sản phẩm trong đơn hàng
-            const updatePromises = order.products.map((product) => {
-                return Product.updateOne(
-                    { name: product.name, "sizes.size": product.size },
-                    { $inc: { "sizes.$.quantity": product.quantity } }
-                );
-            });
-            
-            await Promise.all(updatePromises);
-            res.redirect('back');
+            res.json(order);
         } catch (err) {
             next(err);
         }
     }
 
-    // [PATCH] /admin/transaction/complete/:id
-    async completeOrder(req, res, next) {
-        try {
-            const order = await Order.findById(req.params.id);
-            if (!order) {
-                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
-            }
-
-            // Sử dụng State Pattern để hoàn thành đơn hàng
-            const success = await order.deliverOrder();
-            if (!success) {
-                return res.status(400).json({ 
-                    message: 'Không thể hoàn thành đơn hàng này do trạng thái không phù hợp',
-                    currentStatus: order.status
-                });
-            }
-
-            res.redirect('back');
-        } catch (err) {
-            next(err);
-        }
-    }
-
-    // [PATCH] /admin/transaction/confirm/:id
+    //[PATCH] /admin/transaction/:id/confirm
     async confirmOrder(req, res, next) {
         try {
+            await Order.findByIdAndUpdate(
+                req.params.id,
+                { status: 'đang giao' },
+                { new: true }
+            );
+            res.redirect('back');
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[PATCH] /admin/transaction/:id/complete
+    async completeOrder(req, res, next) {
+        try {
+            await Order.findByIdAndUpdate(
+                req.params.id,
+                { status: 'đã giao' },
+                { new: true }
+            );
+            res.redirect('back');
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    //[DELETE] /admin/transaction/:id
+    async deleteOrder(req, res, next) {
+        try {
             const order = await Order.findById(req.params.id);
             if (!order) {
                 return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
             }
 
-            // Sử dụng State Pattern để xác nhận đơn hàng
-            const success = await order.confirmOrder();
-            if (!success) {
-                return res.status(400).json({ 
-                    message: 'Không thể xác nhận đơn hàng này do trạng thái không phù hợp',
-                    currentStatus: order.status
-                });
+            // Hoàn lại số lượng sản phẩm vào kho
+            for (const product of order.products) {
+                await Product.updateOne(
+                    { name: product.name, 'sizes.size': product.size },
+                    { $inc: { 'sizes.$.quantity': product.quantity } }
+                );
             }
 
+            await Order.findByIdAndUpdate(req.params.id, { status: 'đã hủy' });
             res.redirect('back');
         } catch (err) {
             next(err);

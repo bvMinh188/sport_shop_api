@@ -470,7 +470,7 @@ $(document).ready(function(){
         });
 
         $.ajax({
-            url: '/add-address',
+            url: '/user/add-address',
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -615,7 +615,7 @@ $(document).ready(function(){
         const addressId = $(this).data('address-id');
         
         $.ajax({
-            url: '/set-default-address',
+            url: '/user/set-default-address',
             method: 'POST',
             data: { addressId: addressId },
             success: function(response) {

@@ -39,9 +39,6 @@
             <div class="product-card position-relative">
                 <!-- Tags -->
                 <div class="product-tags">
-                    {{#if this.discount}}
-                        <span class="discount-tag">-{{this.discount}}%</span>
-                    {{/if}}
                     {{#ifGreaterOrEqual this.sold 10}}
                         <span class="status-tag">Bán chạy nhất</span>
                     {{/ifGreaterOrEqual}}

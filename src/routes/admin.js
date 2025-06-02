@@ -104,10 +104,10 @@ router.put('/users/:id/edited', checkLogin, checkUser, userController.showUsersE
 router.delete('/users/:id/deleted', checkLogin, checkUser, userController.showUsersDeleted);
 
 // Order routes
-router.get('/transaction', checkLogin, checkUser, adminController.transaction);
-router.get('/transaction/:id/detail', checkLogin, checkUser, adminController.getOrderDetail);
-router.patch('/transaction/:id/confirm', checkLogin, checkUser, adminController.confirmOrder);
-router.patch('/transaction/:id/complete', checkLogin, checkUser, adminController.completeOrder);
-router.delete('/transaction/:id', checkLogin, checkUser, adminController.deleteOrder);
+router.get('/order', checkLogin, checkUser, orderController.transaction);
+router.get('/order/:id/detail', checkLogin, checkUser, orderController.getOrderDetail);
+router.patch('/order/:id/confirm', checkLogin, checkUser, orderController.confirmOrder);
+router.patch('/order/:id/complete', checkLogin, checkUser, orderController.completeOrder);
+router.delete('/order/:id', checkLogin, checkUser, orderController.deleteOrder);
 
 module.exports = router;

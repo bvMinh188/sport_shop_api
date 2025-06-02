@@ -141,7 +141,7 @@ app.engine("hbs", handlebars.engine({
           return 'badge-confirmed';
         case 'đang giao hàng':
           return 'badge-shipping';
-        case 'đã giao hàng':
+        case 'đã giao':
           return 'badge-delivered';
         case 'đã hủy':
           return 'badge-cancelled';
