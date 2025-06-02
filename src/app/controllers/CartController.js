@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const User = require('../models/User');
+const OrderFactory = require('../factories/OrderFactory');
 dotenv.config();
 
 const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
@@ -210,6 +211,56 @@ class CartController {
                 return res.redirect('/auth/login');
             }
             res.status(500).json({ message: 'Đã xảy ra lỗi khi xóa sản phẩm' });
+        }
+    }
+
+    // [POST] /checkout
+    async checkout(req, res, next) {
+        const token = req.cookies.token;
+        
+        if (!token) {
+            return res.status(401).json({ message: 'Vui lòng đăng nhập để thanh toán' });
+        }
+
+        try {
+            const decodeToken = jwt.verify(token, SECRET_CODE);
+            const cartItems = await Cart.find({ userId: decodeToken._id });
+            
+            if (!cartItems || cartItems.length === 0) {
+                return res.status(400).json({ message: 'Giỏ hàng trống' });
+            }
+
+            const totalPrice = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            const orderData = {
+                userId: decodeToken._id,
+                products: cartItems.map(item => ({
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    size: item.size
+                })),
+                price: totalPrice,
+                address: req.body.address
+            };
+
+            // Sử dụng OrderFactory thay vì tạo trực tiếp Order
+            const order = await OrderFactory.createOrder(orderData);
+
+            // Xóa giỏ hàng sau khi đặt hàng thành công
+            await Cart.deleteMany({ userId: decodeToken._id });
+
+            res.json({ 
+                success: true, 
+                message: 'Đặt hàng thành công',
+                orderId: order._id 
+            });
+        } catch (err) {
+            console.error('Checkout error:', err);
+            res.status(500).json({ 
+                success: false, 
+                message: 'Có lỗi xảy ra khi đặt hàng' 
+            });
         }
     }
 }

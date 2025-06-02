@@ -4,9 +4,28 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
+const OrderFactory = require('../factories/OrderFactory');
+const { mongooseToObject, mutipleMongooseToObject } = require('../../util/mongoose');
+
 dotenv.config();
 
 const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
+
+// Map status tiếng Việt sang tiếng Anh
+const STATUS_MAP = {
+    'chờ xác nhận': 'pending',
+    'đang giao': 'shipping',
+    'đã giao': 'delivered',
+    'đã hủy': 'cancelled'
+};
+
+// Map status tiếng Anh sang tiếng Việt để hiển thị
+const STATUS_MAP_VI = {
+    'pending': 'Chờ xác nhận',
+    'shipping': 'Đang giao hàng',
+    'delivered': 'Đã giao hàng',
+    'cancelled': 'Đã hủy'
+};
 
 class OrderController {
     // [POST] /checkout
@@ -36,21 +55,21 @@ class OrderController {
                 return res.status(400).json({ message: 'Giỏ hàng trống' });
             }
 
-            const products = cartItems.map(item => ({
-                name: item.name,
-                image: item.image,
-                size: item.size,
-                quantity: item.quantity
-            }));
-
-            // Tạo một đơn hàng mới
-            const newOrder = new Order({
+            const orderData = {
                 userId: decodeToken._id,
-                products: products,
-                address: req.body.address,
-                price: price,
-                status: 'chờ xác nhận',
-            });
+                products: cartItems.map(item => ({
+                    name: item.name,
+                    image: item.image,
+                    price: item.price.toString(),
+                    size: item.size,
+                    quantity: item.quantity
+                })),
+                price: price.toString(),
+                address: req.body.address
+            };
+
+            // Sử dụng OrderFactory để tạo đơn hàng mới
+            const order = await OrderFactory.createOrder(orderData);
 
             // Cập nhật số lượng đã bán cho từng sản phẩm
             const updateSoldPromises = cartItems.map(item => {
@@ -60,7 +79,7 @@ class OrderController {
                 );
             });
 
-            const [order] = await Promise.all([newOrder.save(), ...updateSoldPromises]);
+            await Promise.all(updateSoldPromises);
             
             // Xóa giỏ hàng sau khi đặt hàng thành công
             await Cart.deleteMany({ userId: decodeToken._id });
@@ -86,7 +105,7 @@ class OrderController {
             const decodeToken = jwt.verify(token, SECRET_CODE);
             const orderId = req.params.id;
 
-            // Tìm đơn hàng và kiểm tra trạng thái
+            // Tìm đơn hàng
             const order = await Order.findOne({
                 _id: orderId,
                 userId: decodeToken._id
@@ -96,18 +115,14 @@ class OrderController {
                 return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
             }
 
-            // Kiểm tra trạng thái đơn hàng
-            const allowedStatusToCancel = ['chờ xác nhận', 'đã xác nhận', 'đang giao hàng'];
-            if (!allowedStatusToCancel.includes(order.status)) {
+            // Sử dụng State Pattern để hủy đơn hàng
+            const success = await order.cancelOrder();
+            if (!success) {
                 return res.status(400).json({ 
                     message: 'Không thể hủy đơn hàng này do trạng thái không phù hợp',
                     currentStatus: order.status
                 });
             }
-
-            // Cập nhật trạng thái đơn hàng thành "đã hủy"
-            order.status = 'đã hủy';
-            await order.save();
 
             // Hoàn lại số lượng sản phẩm vào kho và cập nhật số lượng đã bán
             const updatePromises = order.products.map(product => {
@@ -150,9 +165,22 @@ class OrderController {
     }
 
     // [PATCH] /admin/transaction/cancel/:id
-    async cancelOrder(req, res, next) {
+    async adminCancelOrder(req, res, next) {
         try {
-            const order = await Order.findByIdAndUpdate(req.params.id, { status: "đã hủy" });
+            const order = await Order.findById(req.params.id);
+            if (!order) {
+                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+            }
+
+            // Sử dụng State Pattern để hủy đơn hàng
+            const success = await order.cancelOrder();
+            if (!success) {
+                return res.status(400).json({ 
+                    message: 'Không thể hủy đơn hàng này do trạng thái không phù hợp',
+                    currentStatus: order.status
+                });
+            }
+
             // Cập nhật lại số lượng tồn kho cho từng sản phẩm trong đơn hàng
             const updatePromises = order.products.map((product) => {
                 return Product.updateOne(
@@ -171,7 +199,20 @@ class OrderController {
     // [PATCH] /admin/transaction/complete/:id
     async completeOrder(req, res, next) {
         try {
-            await Order.findByIdAndUpdate(req.params.id, { status: "đã giao" });
+            const order = await Order.findById(req.params.id);
+            if (!order) {
+                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+            }
+
+            // Sử dụng State Pattern để hoàn thành đơn hàng
+            const success = await order.deliverOrder();
+            if (!success) {
+                return res.status(400).json({ 
+                    message: 'Không thể hoàn thành đơn hàng này do trạng thái không phù hợp',
+                    currentStatus: order.status
+                });
+            }
+
             res.redirect('back');
         } catch (err) {
             next(err);
@@ -181,7 +222,20 @@ class OrderController {
     // [PATCH] /admin/transaction/confirm/:id
     async confirmOrder(req, res, next) {
         try {
-            await Order.findByIdAndUpdate(req.params.id, { status: "đang giao" });
+            const order = await Order.findById(req.params.id);
+            if (!order) {
+                return res.status(404).json({ message: 'Không tìm thấy đơn hàng' });
+            }
+
+            // Sử dụng State Pattern để xác nhận đơn hàng
+            const success = await order.confirmOrder();
+            if (!success) {
+                return res.status(400).json({ 
+                    message: 'Không thể xác nhận đơn hàng này do trạng thái không phù hợp',
+                    currentStatus: order.status
+                });
+            }
+
             res.redirect('back');
         } catch (err) {
             next(err);

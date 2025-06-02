@@ -8,14 +8,19 @@ const cookieParser = require('cookie-parser');
 const { checkLogin } = require('./middleware/auth');
 
 const route = require('./routes');
-const db = require('./config/db');
+const db = require('./config/db/DatabaseSingleton');
 
-// Kết nối tới cơ sở dữ liệu
-db.connect();
-
+// Khởi tạo ứng dụng
 const app = express();
 dotenv.config();
 const PORT = process.env.PORT || 3000;
+
+// Kết nối database
+db.connect()
+    .catch(error => {
+        console.error('Could not connect to database:', error);
+        process.exit(1);
+    });
 
 const session = require('express-session');
 const flash = require('connect-flash');

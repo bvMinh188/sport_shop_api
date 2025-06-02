@@ -1,18 +1,17 @@
 const mongoose = require('mongoose')
 const Schema = mongoose.Schema
 const slug = require('mongoose-slug-updater')
-const mongoosedelte = require(  'mongoose-delete')
+const mongoosedelte = require('mongoose-delete')
 
 mongoose.plugin(slug)
 
 const Product = new Schema({
-  name: String,
-  categoryId:{
+  name: { type: String, required: true },
+  categoryId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref:"Category",
-    require: true
+    ref: "Category"
   },
-  category: String,
+  category: { type: String, required: true },
   sizes: [
     {
       size: { type: Number, required: true },    // Kích thước
@@ -20,15 +19,20 @@ const Product = new Schema({
     }
   ],
   sold: { type: Number, default: 0 }, // Số lượng đã bán
-  price: Number,
+  price: { type: Number, required: true },
   originalPrice: Number, // Giá gốc trước khi giảm
   discount: Number, // Phần trăm giảm giá
-  description: String,
-  image: String,
+  description: { type: String, required: true },
+  image: { type: String, required: true },
   slug: { type: String, slug: 'name' },
+  // Thêm các trường cho từng loại sản phẩm
+  sportType: { type: String }, // Cho giày thể thao
+  style: { type: String }, // Cho giày casual
 }, {
-  timestamps : true,
-},{ strict: true });
-Product.plugin(mongoosedelte, {deletedAt: true, overrideMethods: true })
+  timestamps: true,
+  strict: false // Cho phép thêm các trường động
+});
 
-  module.exports = mongoose.model('Product', Product);
+Product.plugin(mongoosedelte, { deletedAt: true, overrideMethods: true })
+
+module.exports = mongoose.model('Product', Product);

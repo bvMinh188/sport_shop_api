@@ -1,4 +1,5 @@
 const Product = require('../models/Product')
+const productRepo = require('../repositories/ProductRepository')
 const Category = require('../models/Category')
 const { mongooseToObject, mutipleMongooseToObject } = require('../../util/mongoose')
 const slugify = require('slugify')
@@ -6,67 +7,121 @@ const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const dotenv = require('dotenv')
 const axios = require('axios')
+const ProductFactory = require('../factories/ProductFactory')
 
 dotenv.config()
 
 const SECRET_CODE = process.env.SECRET_CODE || 'Minh'
 
-class ProductController{
+class ProductController {
+    constructor() {
+        // Bind các phương thức với instance
+        this.create = this.create.bind(this);
+        this.edit = this.edit.bind(this);
+        this.store = this.store.bind(this);
+        this.update = this.update.bind(this);
+        this.delete = this.delete.bind(this);
+        this.productList = this.productList.bind(this);
+        this.addProduct = this.addProduct.bind(this);
+        this.added = this.added.bind(this);
+        this.showProduct = this.showProduct.bind(this);
+        this.search = this.search.bind(this);
+        this.getByCategory = this.getByCategory.bind(this);
+        this.filter = this.filter.bind(this);
+    }
     
-    show(req, res, next){
-        Product.findOne({ slug: req.params.slug })
-        .then(product => {
+    async create(req, res, next) {
+        try {
+            const categories = await Category.find({});
+            const sizes = [38,39,40,41,42,43,44];
+            res.render('products/create', { 
+                sizes: sizes,
+                categories: mutipleMongooseToObject(categories)
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async edit(req, res, next) {
+        try {
+            const product = await productRepo.findById(req.params.id);
+            res.render('products/edit', {
+                product: mongooseToObject(product)
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    async store(req, res, next) {
+        try {
+            const { name, description, category, price, image, sizes } = req.body;
             
-            res.render('products/show', { product : mongooseToObject(product) });
-        })
-        .catch(next);
+            // Xử lý và validate sizes
+            const formattedSizes = Array.isArray(sizes) ? sizes.map(size => ({
+                size: parseInt(size.size),
+                quantity: parseInt(size.quantity) || 0
+            })).filter(size => !isNaN(size.size) && !isNaN(size.quantity)) : [];
+
+            // Tạo slug
+            const slug = slugify(name, { 
+                lower: true, 
+                locale: 'vi',
+                strict: true
+            });
+
+            const productData = {
+                name,
+                description,
+                category,
+                price: parseFloat(price),
+                image,
+                sizes: formattedSizes,
+                slug
+            };
+
+            // Sử dụng ProductFactory thay vì tạo trực tiếp
+            const product = ProductFactory.createProduct(productData);
+            await product.save();
+            
+            res.redirect('/');
+        } catch (err) {
+            next(err);
+        }
     }
 
-    create(req, res, next) {
-        Category.find({})
-            .then(categories => {
-                const sizes = [38,39,40,41,42,43,44]
-                res.render('products/create', { 
-                    sizes : sizes,
-                    categories: mutipleMongooseToObject(categories) // Chuyển danh sách categories thành đối tượng bình thường
-                });
-            })
-            .catch(next);
-    }
-    
+    async update(req, res, next) {
+        try {
+            const { name, description, category, price, image, sizes } = req.body;
+            
+            // Xử lý và validate sizes
+            const formattedSizes = Array.isArray(sizes) ? sizes.map(size => ({
+                size: parseInt(size.size),
+                quantity: parseInt(size.quantity) || 0
+            })).filter(size => !isNaN(size.size) && !isNaN(size.quantity)) : [];
 
-    edit(req, res, next) {
-        Product.findById(req.params.id)
-            .then(product => {
-                res.render('products/edit', {
-                    product: mongooseToObject(product)
-                });
-            })
-            .catch(next); // Xử lý lỗi nếu xảy ra
-    }
-    
-   
-    store(req, res, next) {
+            // Tạo slug
+            const slug = slugify(name, { 
+                lower: true, 
+                locale: 'vi',
+                strict: true
+            });
 
-        const product = new Product(req.body)
-    
-        product.save()
-            .then(() => {
-                res.redirect('/');
-
-            })
-            .catch(next);
-    }
-
-    update(req, res, next){
-        Product.updateOne({_id: req.params.id}, req.body)
-            .then(() => res.redirect('/admin/stored/products'))
-            .catch(next);
+            await productRepo.update(req.params.id, {
+                ...req.body,
+                sizes: formattedSizes,
+                slug
+            });
+            res.redirect('/admin/stored/products');
+        } catch (err) {
+            next(err);
+        }
     }
 
     async delete(req, res, next) {
         try {
-            const product = await Product.findById(req.params.id);
+            const product = await productRepo.findById(req.params.id);
             if (!product) {
                 return res.status(404).json({
                     success: false,
@@ -74,7 +129,7 @@ class ProductController{
                 });
             }
 
-            await Product.findByIdAndDelete(req.params.id);
+            await productRepo.delete(req.params.id);
             
             res.status(200).json({
                 success: true,
@@ -90,40 +145,30 @@ class ProductController{
         }
     }
 
-    // [GET] /admin/product
     async productList(req, res, next) {
         try {
             let page = parseInt(req.query.page) || 1;
-            let limit = 10; // Giảm số lượng item mỗi trang để dễ quản lý
+            let limit = 10;
             let skip = (page - 1) * limit;
         
-            // Xây dựng query filter
             let filter = {};
             if (req.query.category) {
                 filter.category = req.query.category;
             }
         
-            // Xây dựng query sort
             let sort = {};
             if (req.query._sort) {
                 sort.price = parseInt(req.query._sort);
             } else {
-                // Mặc định sắp xếp theo thời gian tạo mới nhất
                 sort.createdAt = -1;
             }
 
-            // Thực hiện các truy vấn song song
             const [products, totalProducts, categories] = await Promise.all([
-                Product.find(filter)
-                    .sort(sort)
-                    .skip(skip)
-                    .limit(limit)
-                    .lean(), // Sử dụng lean() để tăng hiệu suất
-                Product.countDocuments(filter),
-                Category.find({}).distinct('name') // Lấy danh mục từ bảng Category thay vì từ Product
+                productRepo.findWithPagination(filter, sort, skip, limit),
+                productRepo.count(filter),
+                Category.find({}).distinct('name')
             ]);
 
-            // Tính tổng số lượng cho mỗi sản phẩm
             const productsWithTotalQuantity = products.map(product => {
                 const totalQuantity = product.sizes.reduce((sum, size) => sum + size.quantity, 0);
                 return {
@@ -151,7 +196,6 @@ class ProductController{
         }
     }
 
-    // [GET] /admin/product/add
     async addProduct(req, res, next) {
         try {
             const categories = await Category.find({}).lean();
@@ -165,12 +209,10 @@ class ProductController{
         }
     }
 
-    // [POST] /admin/product/add
     async added(req, res, next) {
         try {
             const { name, description, category, price, image, sizes } = req.body;
             
-            // Validate dữ liệu đầu vào
             if (!name || !description || !category || !price || !image) {
                 return res.render('admin/addProduct', {
                     error: 'Vui lòng điền đầy đủ thông tin',
@@ -180,8 +222,7 @@ class ProductController{
                 });
             }
 
-            // Kiểm tra sản phẩm đã tồn tại
-            const existingProduct = await Product.findOne({ name });
+            const existingProduct = await productRepo.findOne({ name });
             if (existingProduct) {
                 return res.render('admin/addProduct', {
                     error: 'Sản phẩm này đã tồn tại',
@@ -191,20 +232,18 @@ class ProductController{
                 });
             }
 
-            // Xử lý và validate sizes
             const formattedSizes = Array.isArray(sizes) ? sizes.map(size => ({
                 size: parseInt(size.size),
                 quantity: parseInt(size.quantity) || 0
             })).filter(size => !isNaN(size.size) && !isNaN(size.quantity)) : [];
 
-            // Tạo slug từ tên sản phẩm
             const slug = slugify(name, { 
                 lower: true, 
                 locale: 'vi',
                 strict: true
             });
 
-            const product = new Product({
+            const productData = {
                 name,
                 description,
                 category,
@@ -212,9 +251,12 @@ class ProductController{
                 image,
                 sizes: formattedSizes,
                 slug
-            });
+            };
 
+            // Sử dụng ProductFactory thay vì tạo trực tiếp
+            const product = ProductFactory.createProduct(productData);
             await product.save();
+
             res.redirect('/admin/product');
         } catch (err) {
             console.error('Error in added:', err);
@@ -227,87 +269,10 @@ class ProductController{
         }
     }
 
-    // [GET] /admin/product/edit/:id
-    async edit(req, res, next) {
-        try {
-            const [product, categories] = await Promise.all([
-                Product.findById(req.params.id).lean(),
-                Category.find({}).lean()
-            ]);
-
-            if (!product) {
-                return res.redirect('/admin/product');
-            }
-
-            res.render('admin/editProduct', {
-                product,
-                categories
-            });
-        } catch (err) {
-            next(err);
-    }
-    }
-
-    // [PUT] /admin/product/edit/:id
-    async update(req, res, next) {
-        try {
-            const { name, description, category, price, image, supplier, sizes } = req.body;
-            
-            // Kiểm tra tên sản phẩm đã tồn tại (trừ sản phẩm hiện tại)
-            const existingProduct = await Product.findOne({ 
-                name, 
-                _id: { $ne: req.params.id } 
-            });
-            
-            if (existingProduct) {
-                return res.render('admin/editProduct', {
-                    error: 'Tên sản phẩm này đã tồn tại',
-                    product: { ...req.body, _id: req.params.id },
-                    categories: await Category.find({}).lean()
-                });
-            }
-
-            // Xử lý và validate sizes
-            const formattedSizes = sizes.map(size => ({
-                size: parseInt(size.size),
-                quantity: parseInt(size.quantity) || 0
-            }));
-
-            // Cập nhật slug nếu tên thay đổi
-            const slug = slugify(name, { 
-                lower: true, 
-                locale: 'vi',
-                strict: true
-            });
-
-            await Product.findByIdAndUpdate(req.params.id, {
-                name,
-                description,
-                category,
-                price: parseFloat(price),
-                image,
-                supplier,
-                sizes: formattedSizes,
-                slug
-            });
-
-            res.redirect('/admin/product');
-        } catch (err) {
-            console.error('Error in update:', err);
-            res.render('admin/editProduct', {
-                error: 'Có lỗi xảy ra khi cập nhật sản phẩm',
-                product: { ...req.body, _id: req.params.id },
-                categories: await Category.find({}).lean()
-            });
-        }
-    }
-
-    // [GET] /products/:slug
     async showProduct(req, res, next) {
         const slug = req.params.slug;
         const token = req.cookies.token;
 
-        // Kiểm tra và lấy thông tin user nếu đã đăng nhập
         const getUserInfo = token ? 
             new Promise((resolve) => {
                 try {
@@ -324,7 +289,7 @@ class ProductController{
 
         try {
             const [product, user] = await Promise.all([
-                Product.findOne({ slug: slug }).lean(),
+                productRepo.findBySlug(slug),
                 getUserInfo
             ]);
 
@@ -337,32 +302,28 @@ class ProductController{
 
             const apiUrl = `http://localhost:5555/api?id=${product._id.toString()}`;
 
-            // Gọi API để lấy sản phẩm gợi ý
             try {
                 const response = await axios.get(apiUrl);
                 if (response.data && response.data['san pham goi y']) {
                     const suggestedIds = response.data['san pham goi y'];
-                    const suggestedProducts = await Product.find({ _id: { $in: suggestedIds } })
-                        .select('name image price slug')
-                        .lean();
+                    const suggestedProducts = await productRepo.findWithSuggestions(suggestedIds);
 
                     return res.render('products/show', {
-                        product: product,
+                        product: mongooseToObject(product),
                         products: suggestedProducts,
                         user: user
                     });
                 }
                 
-                // Nếu không có sản phẩm gợi ý
                 res.render('products/show', {
-                    product: product,
+                    product: mongooseToObject(product),
                     products: [],
                     user: user
                 });
             } catch (error) {
                 console.error("Lỗi khi lấy dữ liệu sản phẩm gợi ý từ API:", error.message);
                 res.render('products/show', {
-                    product: product,
+                    product: mongooseToObject(product),
                     products: [],
                     user: user
                 });
@@ -373,7 +334,6 @@ class ProductController{
         }
     }
 
-    // [GET] /products/search
     async search(req, res) {
         try {
             const searchQuery = req.query.q || '';
@@ -382,15 +342,7 @@ class ProductController{
                 return res.redirect('/');
             }
 
-            const searchRegex = new RegExp(searchQuery.trim(), 'i');
-
-            const products = await Product.find({
-                $or: [
-                    { name: searchRegex },
-                    { description: searchRegex },
-                    { category: searchRegex }
-                ]
-            }).lean();
+            const products = await productRepo.search(searchQuery);
 
             res.render('products/search', {
                 products,
@@ -407,7 +359,6 @@ class ProductController{
         }
     }
 
-    // [GET] /products/category/:category
     async getByCategory(req, res, next) {
         try {
             const category = req.params.category;
@@ -416,11 +367,8 @@ class ProductController{
             const skip = (page - 1) * limit;
 
             const [products, totalProducts, categories] = await Promise.all([
-                Product.find({ category: category })
-                    .skip(skip)
-                    .limit(limit)
-                    .lean(),
-                Product.countDocuments({ category: category }),
+                productRepo.findByCategory(category),
+                productRepo.count({ category }),
                 Product.distinct("category")
             ]);
 
@@ -440,7 +388,6 @@ class ProductController{
         }
     }
 
-    // [GET] /products/filter
     async filter(req, res, next) {
         try {
             const { minPrice, maxPrice, category, sort } = req.query;
@@ -450,19 +397,16 @@ class ProductController{
 
             let query = {};
 
-            // Lọc theo giá
             if (minPrice || maxPrice) {
                 query.price = {};
                 if (minPrice) query.price.$gte = parseInt(minPrice);
                 if (maxPrice) query.price.$lte = parseInt(maxPrice);
             }
 
-            // Lọc theo danh mục
             if (category) {
                 query.category = category;
             }
 
-            // Tạo query để sắp xếp
             let sortQuery = {};
             if (sort === 'price_asc') {
                 sortQuery.price = 1;
@@ -475,12 +419,8 @@ class ProductController{
             }
 
             const [products, totalProducts, categories] = await Promise.all([
-                Product.find(query)
-                    .sort(sortQuery)
-                    .skip(skip)
-                    .limit(limit)
-                    .lean(),
-                Product.countDocuments(query),
+                productRepo.findWithPagination(query, sortQuery, skip, limit),
+                productRepo.count(query),
                 Product.distinct("category")
             ]);
 
@@ -506,4 +446,4 @@ class ProductController{
     }
 }
 
-module.exports = new ProductController;
+module.exports = new ProductController();

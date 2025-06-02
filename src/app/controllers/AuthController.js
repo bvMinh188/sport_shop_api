@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../../util/mailjet');
 const dotenv = require('dotenv');
+const UserFactory = require('../factories/UserFactory');
+
 dotenv.config();
 
 const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
@@ -15,30 +17,30 @@ class AuthController {
     }
 
     // [POST] /signup
-    signUp(req, res, next) {
-        const { email, password } = req.body;
+    async signUp(req, res, next) {
+        try {
+            const { email, password, username, phone } = req.body;
 
-        User.findOne({ email: email })
-            .then(userByEmail => {
-                if (userByEmail) {
-                    return res.json({ message: 'email đã được đăng ký' });
-                }
-                return bcrypt.hash(password, 10)
-                    .then(hashedPassword => {
-                        const user = new User({
-                            ...req.body,
-                            password: hashedPassword,
-                        });
-                        return user.save();
-                    })
-                    .then(() => {
-                        res.json({ message: "success" });
-                    });
-            })
-            .catch(error => {
-                console.error("Lỗi khi đăng ký:", error);
-                res.status(500).json({ message: "error" });
+            // Kiểm tra email đã tồn tại
+            const userByEmail = await User.findOne({ email: email });
+            if (userByEmail) {
+                return res.json({ message: 'email đã được đăng ký' });
+            }
+
+            // Sử dụng UserFactory để tạo user mới
+            const user = await UserFactory.createUser({
+                username,
+                email,
+                password,
+                phone,
+                address: req.body.address // nếu có
             });
+
+            res.json({ message: "success" });
+        } catch (error) {
+            console.error("Lỗi khi đăng ký:", error);
+            res.status(500).json({ message: "error" });
+        }
     }
 
     // [GET] /login
@@ -104,9 +106,11 @@ class AuthController {
 
             const resetToken = crypto.randomBytes(32).toString('hex');
             
-            user.resetPasswordToken = resetToken;
-            user.resetPasswordExpires = Date.now() + 3600000; // 1 giờ
-            await user.save();
+            // Sử dụng UserFactory để cập nhật thông tin user
+            await UserFactory.updateUser(user._id, {
+                resetPasswordToken: resetToken,
+                resetPasswordExpires: Date.now() + 3600000 // 1 giờ
+            });
 
             await sendPasswordResetEmail(email, resetToken);
 
@@ -163,12 +167,12 @@ class AuthController {
                 });
             }
 
-            const hashedPassword = await bcrypt.hash(password, 10);
-            
-            user.password = hashedPassword;
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpires = undefined;
-            await user.save();
+            // Sử dụng UserFactory để cập nhật mật khẩu
+            await UserFactory.updateUser(user._id, {
+                password: password,
+                resetPasswordToken: undefined,
+                resetPasswordExpires: undefined
+            });
 
             res.json({
                 success: true,
