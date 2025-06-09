@@ -4,7 +4,6 @@ const Product = require('../models/Product');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
-const OrderFactory = require('../factories/OrderFactory');
 const { mongooseToObject, mutipleMongooseToObject } = require('../../util/mongoose');
 
 dotenv.config();
@@ -55,21 +54,25 @@ class OrderController {
                 return res.status(400).json({ message: 'Giỏ hàng trống' });
             }
 
-            const orderData = {
-                userId: decodeToken._id,
-                products: cartItems.map(item => ({
-                    name: item.name,
-                    image: item.image,
-                    price: item.price.toString(),
-                    size: item.size,
-                    quantity: item.quantity
-                })),
-                price: price.toString(),
-                address: req.body.address
-            };
+            // Validate và chuẩn bị dữ liệu sản phẩm
+            const products = cartItems.map(item => ({
+                name: item.name,
+                image: item.image,
+                price: item.price.toString(),
+                size: item.size,
+                quantity: item.quantity
+            }));
 
-            // Sử dụng OrderFactory để tạo đơn hàng mới
-            const order = await OrderFactory.createOrder(orderData);
+            // Tạo đơn hàng mới
+            const order = new Order({
+                userId: decodeToken._id,
+                products: products,
+                price: price.toString(),
+                address: req.body.address,
+                status: 'chờ xác nhận'
+            });
+
+            await order.save();
 
             // Cập nhật số lượng đã bán cho từng sản phẩm
             const updateSoldPromises = cartItems.map(item => {

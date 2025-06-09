@@ -101,7 +101,7 @@ router.delete('/category/delete/:id', checkLogin, checkUser, categoryController.
 router.get('/users', checkLogin, checkUser, userController.showUsers);
 router.get('/users/edit/:id', checkLogin, checkUser, userController.showUsersEdit);
 router.put('/users/:id/edited', checkLogin, checkUser, userController.showUsersEdited);
-router.delete('/users/:id/deleted', checkLogin, checkUser, userController.showUsersDeleted);
+router.delete('/users/:id/deleted', checkLogin, checkUser, userController.DeletedUser);
 
 // Order routes
 router.get('/order', checkLogin, checkUser, orderController.transaction);

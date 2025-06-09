@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../../util/mailjet');
 const dotenv = require('dotenv');
-const UserFactory = require('../factories/UserFactory');
+
 
 dotenv.config();
 
@@ -27,15 +27,20 @@ class AuthController {
                 return res.json({ message: 'email đã được đăng ký' });
             }
 
-            // Sử dụng UserFactory để tạo user mới
-            const user = await UserFactory.createUser({
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Tạo user mới
+            const user = new User({
                 username,
                 email,
-                password,
+                password: hashedPassword,
                 phone,
-                address: req.body.address // nếu có
+                role: 'user',
+                addresses: []
             });
 
+            await user.save();
             res.json({ message: "success" });
         } catch (error) {
             console.error("Lỗi khi đăng ký:", error);
@@ -106,11 +111,10 @@ class AuthController {
 
             const resetToken = crypto.randomBytes(32).toString('hex');
             
-            // Sử dụng UserFactory để cập nhật thông tin user
-            await UserFactory.updateUser(user._id, {
-                resetPasswordToken: resetToken,
-                resetPasswordExpires: Date.now() + 3600000 // 1 giờ
-            });
+            // Cập nhật thông tin reset password
+            user.resetPasswordToken = resetToken;
+            user.resetPasswordExpires = Date.now() + 3600000; // 1 giờ
+            await user.save();
 
             await sendPasswordResetEmail(email, resetToken);
 
@@ -167,12 +171,12 @@ class AuthController {
                 });
             }
 
-            // Sử dụng UserFactory để cập nhật mật khẩu
-            await UserFactory.updateUser(user._id, {
-                password: password,
-                resetPasswordToken: undefined,
-                resetPasswordExpires: undefined
-            });
+            // Hash và cập nhật mật khẩu mới
+            const hashedPassword = await bcrypt.hash(password, 10);
+            user.password = hashedPassword;
+            user.resetPasswordToken = undefined;
+            user.resetPasswordExpires = undefined;
+            await user.save();
 
             res.json({
                 success: true,

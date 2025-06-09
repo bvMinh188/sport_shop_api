@@ -3,7 +3,6 @@ const Product = require('../models/Product');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 const User = require('../models/User');
-const OrderFactory = require('../factories/OrderFactory');
 dotenv.config();
 
 const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
@@ -244,16 +243,13 @@ class CartController {
                 address: req.body.address
             };
 
-            // Sử dụng OrderFactory thay vì tạo trực tiếp Order
-            const order = await OrderFactory.createOrder(orderData);
-
             // Xóa giỏ hàng sau khi đặt hàng thành công
             await Cart.deleteMany({ userId: decodeToken._id });
 
             res.json({ 
                 success: true, 
                 message: 'Đặt hàng thành công',
-                orderId: order._id 
+                orderId: orderData._id 
             });
         } catch (err) {
             console.error('Checkout error:', err);

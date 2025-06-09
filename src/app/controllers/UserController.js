@@ -201,13 +201,52 @@ class UserController {
         }
     }
 
-    // [DELETE] /admin/users/:id/deleted
-    async showUsersDeleted(req, res, next) {
+    // [DELETE] /users/:id/deleted
+    async DeletedUser(req, res, next) {
         try {
-            await User.delete({ _id: req.params.id });
-            res.redirect('/admin/users');
+            const userId = req.params.id;
+            
+            // Kiểm tra user tồn tại
+            const user = await User.findById(userId);
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Không tìm thấy người dùng'
+                });
+            }
+
+            // Kiểm tra không cho phép xóa tài khoản admin
+            if (user.role === 'admin') {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Không thể xóa tài khoản admin'
+                });
+            }
+
+            // Kiểm tra xem người dùng đã có đơn hàng nào chưa
+            const existingOrders = await Order.findOne({ userId: userId });
+            if (existingOrders) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Không thể xóa người dùng đã có đơn hàng trong hệ thống'
+                });
+            }
+
+            // Thực hiện xóa user
+            await User.findByIdAndDelete(userId);
+            
+            // Trả về response thành công
+            return res.status(200).json({
+                success: true,
+                message: 'Xóa người dùng thành công'
+            });
         } catch (err) {
-            next(err);
+            console.error('Error in DeletedUser:', err);
+            return res.status(500).json({
+                success: false,
+                message: 'Có lỗi xảy ra khi xóa người dùng',
+                error: err.message
+            });
         }
     }
 }

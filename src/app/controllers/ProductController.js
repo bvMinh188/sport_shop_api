@@ -7,7 +7,6 @@ const User = require('../models/User')
 const jwt = require('jsonwebtoken')
 const dotenv = require('dotenv')
 const axios = require('axios')
-const ProductFactory = require('../factories/ProductFactory')
 
 dotenv.config()
 
@@ -73,7 +72,8 @@ class ProductController {
                 strict: true
             });
 
-            const productData = {
+            // Tạo sản phẩm mới trực tiếp
+            const product = new Product({
                 name,
                 description,
                 category,
@@ -81,10 +81,8 @@ class ProductController {
                 image,
                 sizes: formattedSizes,
                 slug
-            };
+            });
 
-            // Sử dụng ProductFactory thay vì tạo trực tiếp
-            const product = ProductFactory.createProduct(productData);
             await product.save();
             
             res.redirect('/');
@@ -245,7 +243,8 @@ class ProductController {
                 strict: true
             });
 
-            const productData = {
+            // Tạo sản phẩm mới trực tiếp
+            const product = new Product({
                 name,
                 description,
                 category,
@@ -253,10 +252,8 @@ class ProductController {
                 image,
                 sizes: formattedSizes,
                 slug
-            };
+            });
 
-            // Sử dụng ProductFactory thay vì tạo trực tiếp
-            const product = ProductFactory.createProduct(productData);
             await product.save();
 
             res.redirect('/admin/product');
