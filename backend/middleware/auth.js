@@ -3,30 +3,22 @@ const User = require('../models/User');
 const dotenv = require('dotenv');
 dotenv.config();
 
-const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
+const SECRET_CODE = process.env.SECRET_CODE || 'your-secret-key';
 
 const verifyToken = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
 
-        if (!token || typeof token !== 'string' || token.length < 10) {
+        if (!token) {
             return res.status(401).json({
                 success: false,
-                message: 'Invalid token format'
+                message: 'No token provided'
             });
         }
-
+        console.log(token);
         const decoded = jwt.verify(token, SECRET_CODE);
-        
-        let user;
-        try {
-            user = await User.findById(decoded.id);
-        } catch (error) {
-            return res.status(500).json({
-                success: false,
-                message: 'Database error'
-            });
-        }
+        console.log(decoded);
+        const user = await User.findById(decoded.id);
 
         if (!user) {
             return res.status(401).json({
@@ -36,7 +28,6 @@ const verifyToken = async (req, res, next) => {
         }
 
         req.user = {
-            id: user._id,
             _id: user._id,
             username: user.username,
             email: user.email,
@@ -101,4 +92,4 @@ const checkLogin = (req, res, next) => {
     }
 };
 
-module.exports = verifyToken; 
+module.exports = { checkLogin, verifyToken }; 
