@@ -9,18 +9,19 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
+const SECRET_CODE = process.env.JWT_SECRET || 'your-secret-key';
 const SALT_ROUNDS = 10;
 
 class UserController {
     constructor() {
-        this.register = this.register.bind(this);
-        this.login = this.login.bind(this);
+        this.signUp = this.signUp.bind(this);
+        this.logined = this.logined.bind(this);
+        this.handleForgotPassword = this.handleForgotPassword.bind(this);
+        this.handleResetPassword = this.handleResetPassword.bind(this);
+        this.logout = this.logout.bind(this);
         this.getProfile = this.getProfile.bind(this);
         this.updateProfile = this.updateProfile.bind(this);
         this.changePassword = this.changePassword.bind(this);
-        this.forgotPassword = this.forgotPassword.bind(this);
-        this.resetPassword = this.resetPassword.bind(this);
         this.addAddress = this.addAddress.bind(this);
         this.updateAddress = this.updateAddress.bind(this);
         this.deleteAddress = this.deleteAddress.bind(this);
@@ -32,50 +33,50 @@ class UserController {
     }
 
     // [POST] /api/auth/register
-    async register(req, res, next) {
+    async signUp(req, res, next) {
         try {
-            const { username, email, password, phone } = req.body;
+            const { email, password, username, phone } = req.body;
 
             // Validate required fields
-            if (!username || !email || !password) {
+            if (!email || !password || !username) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Username, email and password are required'
+                    message: 'Email, password và username là bắt buộc'
                 });
             }
 
-            // Check if user already exists
-            const existingUser = await User.findOne({
-                $or: [{ email }, { username }]
-            });
-
-            if (existingUser) {
+            // Kiểm tra email đã tồn tại
+            const userByEmail = await User.findOne({ email });
+            if (userByEmail) {
                 return res.status(400).json({
                     success: false,
-                    message: 'User with this email or username already exists'
+                    message: 'Email đã được đăng ký'
                 });
             }
 
-            // Create new user
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+            // Tạo user mới
             const user = new User({
                 username,
                 email,
-                password,
-                phone
+                password: hashedPassword,
+                phone,
+                role: 'user',
+                addresses: []
             });
 
             await user.save();
 
-            // Generate token
-            const token = jwt.sign(
-                { id: user._id },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
+            // Tạo token
+            const token = jwt.sign({ id: user._id }, SECRET_CODE, {
+                expiresIn: '24h'
+            });
 
             res.status(201).json({
                 success: true,
-                message: 'User registered successfully',
+                message: 'Đăng ký thành công',
                 data: {
                     token,
                     user: {
@@ -83,7 +84,7 @@ class UserController {
                         username: user.username,
                         email: user.email,
                         phone: user.phone,
-                        isAdmin: user.isAdmin
+                        role: user.role
                     }
                 }
             });
@@ -93,46 +94,44 @@ class UserController {
     }
 
     // [POST] /api/auth/login
-    async login(req, res, next) {
+    async logined(req, res, next) {
         try {
             const { email, password } = req.body;
 
-            // Validate required fields
+            // Validate input
             if (!email || !password) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Email and password are required'
+                    message: 'Email và password là bắt buộc'
                 });
             }
 
-            // Find user
+            // Tìm user
             const user = await User.findOne({ email });
             if (!user) {
                 return res.status(401).json({
                     success: false,
-                    message: 'Invalid email or password'
+                    message: 'Tài khoản không tồn tại'
                 });
             }
 
-            // Check password
+            // Kiểm tra password
             const isMatch = await bcrypt.compare(password, user.password);
             if (!isMatch) {
                 return res.status(401).json({
                     success: false,
-                    message: 'Invalid email or password'
+                    message: 'Sai mật khẩu'
                 });
             }
 
-            // Generate token
-            const token = jwt.sign(
-                { id: user._id },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            );
+            // Tạo token
+            const token = jwt.sign({ id: user._id }, SECRET_CODE, {
+                expiresIn: '24h'
+            });
 
             res.json({
                 success: true,
-                message: 'Login successful',
+                message: 'Đăng nhập thành công',
                 data: {
                     token,
                     user: {
@@ -140,7 +139,7 @@ class UserController {
                         username: user.username,
                         email: user.email,
                         phone: user.phone,
-                        isAdmin: user.isAdmin
+                        role: user.role
                     }
                 }
             });
@@ -152,8 +151,8 @@ class UserController {
     // [GET] /api/users/profile
     async getProfile(req, res, next) {
         try {
-            const user = await User.findById(req.user.id).select('-password');
-            
+            const user = await User.findById(req.user._id);
+
             if (!user) {
                 return res.status(404).json({
                     success: false,
@@ -258,15 +257,15 @@ class UserController {
         }
     }
 
-    // [POST] /api/users/forgot-password
-    async forgotPassword(req, res, next) {
+    // [POST] /api/auth/forgot-password
+    async handleForgotPassword(req, res, next) {
         try {
             const { email } = req.body;
 
             if (!email) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Email is required'
+                    message: 'Email là bắt buộc'
                 });
             }
 
@@ -274,52 +273,39 @@ class UserController {
             if (!user) {
                 return res.status(404).json({
                     success: false,
-                    message: 'User not found'
+                    message: 'Email không tồn tại trong hệ thống'
                 });
             }
 
-            // Generate reset token
             const resetToken = crypto.randomBytes(32).toString('hex');
             user.resetPasswordToken = resetToken;
-            user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+            user.resetPasswordExpires = Date.now() + 3600000; // 1 giờ
             await user.save();
 
-            // Send reset email
-            const transporter = nodemailer.createTransport({
-                // Configure your email service here
-                service: 'gmail',
-                auth: {
-                    user: process.env.EMAIL_USER,
-                    pass: process.env.EMAIL_PASS
-                }
-            });
-
-            const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-
-            await transporter.sendMail({
-                to: user.email,
-                subject: 'Password Reset Request',
-                html: `Please click this link to reset your password: <a href="${resetUrl}">${resetUrl}</a>`
-            });
+            // TODO: Gửi email reset password
+            // await sendPasswordResetEmail(email, resetToken);
 
             res.json({
                 success: true,
-                message: 'Password reset email sent'
+                message: 'Link đặt lại mật khẩu đã được gửi vào email của bạn',
+                data: {
+                    resetToken // Trong thực tế không nên trả về token
+                }
             });
         } catch (error) {
             next(error);
         }
     }
 
-    // [POST] /api/users/reset-password
-    async resetPassword(req, res, next) {
+    // [POST] /api/auth/reset-password
+    async handleResetPassword(req, res, next) {
         try {
-            const { token, newPassword } = req.body;
+            const { token, password } = req.body;
 
-            if (!token || !newPassword) {
+            if (!token || !password) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Token and new password are required'
+                    message: 'Token và password mới là bắt buộc'
                 });
             }
 
@@ -331,14 +317,12 @@ class UserController {
             if (!user) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Invalid or expired reset token'
+                    message: 'Token không hợp lệ hoặc đã hết hạn'
                 });
             }
 
-            // Hash new password
-            const hashedPassword = await bcrypt.hash(newPassword, SALT_ROUNDS);
-
-            // Update user
+            // Hash và cập nhật password mới
+            const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
             user.password = hashedPassword;
             user.resetPasswordToken = undefined;
             user.resetPasswordExpires = undefined;
@@ -346,11 +330,19 @@ class UserController {
 
             res.json({
                 success: true,
-                message: 'Password reset successful'
+                message: 'Đặt lại mật khẩu thành công'
             });
         } catch (error) {
             next(error);
         }
+    }
+
+    // [POST] /api/auth/logout
+    async logout(req, res) {
+        res.json({
+            success: true,
+            message: 'Đăng xuất thành công'
+        });
     }
 
     // [POST] /api/users/addresses

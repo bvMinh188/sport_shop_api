@@ -9,15 +9,24 @@ const verifyToken = async (req, res, next) => {
     try {
         const token = req.headers.authorization?.split(' ')[1] || req.cookies?.token;
 
-        if (!token) {
+        if (!token || typeof token !== 'string' || token.length < 10) {
             return res.status(401).json({
                 success: false,
-                message: 'No token provided'
+                message: 'Invalid token format'
             });
         }
 
         const decoded = jwt.verify(token, SECRET_CODE);
-        const user = await User.findById(decoded._id);
+        
+        let user;
+        try {
+            user = await User.findById(decoded.id);
+        } catch (error) {
+            return res.status(500).json({
+                success: false,
+                message: 'Database error'
+            });
+        }
 
         if (!user) {
             return res.status(401).json({
@@ -27,6 +36,7 @@ const verifyToken = async (req, res, next) => {
         }
 
         req.user = {
+            id: user._id,
             _id: user._id,
             username: user.username,
             email: user.email,
@@ -91,4 +101,4 @@ const checkLogin = (req, res, next) => {
     }
 };
 
-module.exports = { checkLogin, verifyToken }; 
+module.exports = verifyToken; 

@@ -4,52 +4,53 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sport Shop - Giày Thể Thao</title>
-    <link rel="stylesheet" href="/public/css/style.css">
+    <link rel="stylesheet" href="public/css/style.css">
 </head>
 <body>
-    <!-- Header -->
     <header>
-        <div class="header-container">
-            <a href="/" class="logo">
-                <img src="/public/images/logo.png" alt="Sport Shop" onerror="this.src='https://via.placeholder.com/150x50?text=Sport+Shop'">
-            </a>
-            <div class="search-container">
-                <input type="text" id="searchInput" placeholder="Tìm kiếm sản phẩm...">
-                <button class="search-button">
-                    <img src="/public/images/search.png" alt="Search" class="search-icon" onerror="this.src='https://via.placeholder.com/20x20?text=🔍'">
-                </button>
+        <nav class="navbar">
+            <div class="logo">
+                <a href="/">
+                    <h1>Sport Shop</h1>
+                </a>
             </div>
-            <button class="login-btn">Đăng nhập</button>
-        </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm sản phẩm...">
+                <button id="searchButton">Tìm kiếm</button>
+            </div>
+            <div class="nav-actions">
+                <a href="/cart" class="cart-link">Giỏ hàng</a>
+                <a href="/login" class="login-link">Đăng nhập</a>
+            </div>
+        </nav>
     </header>
 
-    <!-- Main Content -->
     <main>
-        <!-- Categories -->
-        <div class="categories">
-            <button class="category-btn active">Tất Cả</button>
-        </div>
-
-        <!-- Sort Filter -->
-        <div class="sort-container">
-            <button class="sort-btn">Sắp xếp theo giá</button>
-            <div class="sort-dropdown" style="display: none;">
-                <button class="sort-option" data-sort="asc">Giá: Thấp đến cao</button>
-                <button class="sort-option" data-sort="desc">Giá: Cao đến thấp</button>
+        <section class="category-section">
+            <h2>GIÀY THỂ THAO</h2>
+            <div class="category-filters">
+                <button class="filter-btn active" data-category="all">Tất Cả</button>
+                <button class="filter-btn" data-category="futsal">Giày FUTSAL</button>
+                <button class="filter-btn" data-category="football">Giày bóng rổ</button>
+                <button class="filter-btn" data-category="running">Giày chạy bộ</button>
+                <button class="filter-btn" data-category="basketball">Giày đá bóng</button>
+                <button class="filter-btn" data-category="volleyball">Giày cầu lông</button>
             </div>
-        </div>
+            <div class="sort-section">
+                <button class="sort-btn">Lọc: Giá thấp đến cao</button>
+            </div>
+        </section>
 
-        <!-- Products Grid -->
-        <div id="productsContainer" class="products-grid">
-            <!-- Products will be loaded here -->
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination">
-            <!-- Pagination will be loaded here -->
-        </div>
+        <section class="products" id="productsContainer">
+            <!-- Products will be loaded here dynamically -->
+        </section>
     </main>
 
-    <script src="/public/js/main.js"></script>
+    <footer>
+        <p>&copy; 2024 Sport Shop. All rights reserved.</p>
+    </footer>
+
+    <script type="module" src="scripts/api.js"></script>
+    <script type="module" src="scripts/main.js"></script>
 </body>
 </html> 

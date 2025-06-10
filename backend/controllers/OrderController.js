@@ -120,37 +120,26 @@ class OrderController {
     // [GET] /api/orders
     async getOrders(req, res, next) {
         try {
-            const userId = req.user.id;
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 10;
-            const status = req.query.status;
+            // Get user ID from authenticated request
+            const userId = req.user._id;
 
+            // Build query
             const query = { userId };
-            if (status) {
-                query.status = status;
+            if (req.query.status) {
+                query.status = req.query.status;
             }
 
-            const [orders, total] = await Promise.all([
-                Order.find(query)
-                    .sort('-createdAt')
-                    .skip((page - 1) * limit)
-                    .limit(limit)
-                    .lean(),
-                Order.countDocuments(query)
-            ]);
+            // Get all orders for the user
+            const orders = await Order.find(query)
+                .sort({ createdAt: -1 })
+                .lean();
 
             res.json({
                 success: true,
-                data: {
-                    orders,
-                    pagination: {
-                        currentPage: page,
-                        totalPages: Math.ceil(total / limit),
-                        totalOrders: total
-                    }
-                }
+                data: orders
             });
         } catch (error) {
+            console.error('Error in getOrders:', error);
             next(error);
         }
     }

@@ -21,6 +21,7 @@ class CartController {
     // [GET] /api/cart
     async getCart(req, res, next) {
         try {
+            
             const userId = req.user.id;
             let cart = await Cart.findOne({ userId }).populate('items.product');
 
