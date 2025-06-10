@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sport Shop - Giày Thể Thao</title>
+    <link rel="stylesheet" href="/public/css/style.css">
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo">
+                <img src="/public/images/logo.png" alt="Sport Shop" onerror="this.src='https://via.placeholder.com/150x50?text=Sport+Shop'">
+            </a>
+            <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Tìm kiếm sản phẩm...">
+                <button class="search-button">
+                    <img src="/public/images/search.png" alt="Search" class="search-icon" onerror="this.src='https://via.placeholder.com/20x20?text=🔍'">
+                </button>
+            </div>
+            <button class="login-btn">Đăng nhập</button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Categories -->
+        <div class="categories">
+            <button class="category-btn active">Tất Cả</button>
+        </div>
+
+        <!-- Sort Filter -->
+        <div class="sort-container">
+            <button class="sort-btn">Sắp xếp theo giá</button>
+            <div class="sort-dropdown" style="display: none;">
+                <button class="sort-option" data-sort="asc">Giá: Thấp đến cao</button>
+                <button class="sort-option" data-sort="desc">Giá: Cao đến thấp</button>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div id="productsContainer" class="products-grid">
+            <!-- Products will be loaded here -->
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            <!-- Pagination will be loaded here -->
+        </div>
+    </main>
+
+    <script src="/public/js/main.js"></script>
+</body>
+</html> 

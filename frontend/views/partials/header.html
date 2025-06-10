@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<header class="header">
+    <nav class="navbar">
+        <div class="container">
+            <a class="logo" href="/">
+                <img src="https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/1067900/header.jpg?t=1706149846" alt="Sport Shop Logo">
+            </a>
+
+            <!-- Search Form -->
+            <div class="search-container">
+                <div class="search-wrapper">
+                    <input type="text" class="search-input" placeholder="Tìm kiếm sản phẩm..." id="searchInput">
+                    <button class="search-button" type="button">
+                        <img class="search-icon" src="https://www.shutterstock.com/image-vector/search-find-lupa-icon-logo-260nw-1456108235.jpg" alt="Search">
+                    </button>
+                </div>
+            </div>
+
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <div class="nav-menu" id="navMenu">
+                <div class="user-menu" id="userMenuContainer">
+                    <!-- This content will be dynamically updated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<style>
+/* Header Styles */
+.header {
+    background-color: #1a1a1a;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.navbar {
+    padding: 1rem 0;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Logo */
+.logo img {
+    height: 40px;
+    object-fit: contain;
+}
+
+/* Search */
+.search-container {
+    flex: 1;
+    max-width: 500px;
+    margin: 0 2rem;
+}
+
+.search-wrapper {
+    display: flex;
+    background: white;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: none;
+    outline: none;
+    font-size: 1rem;
+}
+
+.search-button {
+    padding: 0.5rem 1rem;
+    background: #28a745;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    height: 20px;
+    width: 20px;
+    object-fit: contain;
+}
+
+/* Navigation Menu */
+.nav-menu {
+    display: flex;
+    align-items: center;
+}
+
+.user-menu {
+    display: flex;
+    gap: 1rem;
+}
+
+.nav-button {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: transparent;
+    border: 1px solid #ffffff33;
+    border-radius: 4px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-button:hover {
+    background: #ffffff11;
+}
+
+.nav-button img {
+    height: 20px;
+    width: 20px;
+    object-fit: contain;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 30px;
+    height: 20px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+}
+
+.mobile-menu-btn span {
+    width: 100%;
+    height: 2px;
+    background-color: white;
+    transition: all 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        flex-wrap: wrap;
+    }
+
+    .search-container {
+        order: 3;
+        margin: 1rem 0;
+        width: 100%;
+        max-width: none;
+    }
+
+    .mobile-menu-btn {
+        display: flex;
+    }
+
+    .nav-menu {
+        display: none;
+        width: 100%;
+        order: 4;
+    }
+
+    .nav-menu.active {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .user-menu {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .nav-button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+// Wait for DOM to load
+document.addEventListener('DOMContentLoaded', function() {
+    const userMenuContainer = document.getElementById('userMenuContainer');
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const navMenu = document.getElementById('navMenu');
+
+    // Toggle mobile menu
+    mobileMenuBtn.addEventListener('click', () => {
+        navMenu.classList.toggle('active');
+    });
+
+    // Function to update user menu based on authentication status
+    function updateUserMenu() {
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user'));
+
+        if (token && user) {
+            // Logged in user menu
+            userMenuContainer.innerHTML = `
+                <button class="nav-button" onclick="location.href='/user/profile'">
+                    <img src="https://png.pngtree.com/png-vector/20191009/ourmid/pngtree-user-icon-png-image_1796659.jpg" alt="Profile">
+                    <span>Tài khoản</span>
+                </button>
+                <button class="nav-button" onclick="location.href='/cart/show'">
+                    <img src="https://cdn.pixabay.com/photo/2014/04/02/10/53/shopping-cart-304843_640.png" alt="Cart">
+                    <span>Giỏ hàng</span>
+                </button>
+                <button class="nav-button" onclick="handleLogout()">
+                    <span>Đăng xuất</span>
+                </button>
+            `;
+        } else {
+            // Guest menu
+            userMenuContainer.innerHTML = `
+                <button class="nav-button" onclick="location.href='/auth/login'">
+                    <img src="https://e7.pngegg.com/pngimages/713/762/png-clipart-computer-icons-button-login-image-file-formats-logo-thumbnail.png" alt="Login">
+                    <span>Đăng nhập</span>
+                </button>
+            `;
+        }
+    }
+
+    // Handle logout
+    window.handleLogout = async function() {
+        try {
+            const response = await auth.logout();
+            if (response.success) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            }
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    }
+
+    // Handle search
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.querySelector('.search-button');
+
+    async function handleSearch() {
+        const query = searchInput.value.trim();
+        if (query) {
+            const response = await products.search(query);
+            if (response.success) {
+                // Trigger event for main.js to handle
+                const searchEvent = new CustomEvent('productSearch', {
+                    detail: { products: response.data }
+                });
+                document.dispatchEvent(searchEvent);
+            }
+        }
+    }
+
+    searchButton.addEventListener('click', handleSearch);
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleSearch();
+        }
+    });
+
+    // Initial setup
+    updateUserMenu();
+});
+</script> 

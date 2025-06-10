@@ -1,20 +1,36 @@
-# Bỏ qua thư mục cấu hình của Visual Studio Code
-.vscode/
-
-# Bỏ qua thư mục node_modules
+# Dependencies
 node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
 
-# Bỏ qua các tệp CSS trong thư mục src/public/css
-src/public/css/
+# Environment variables
+.env
+.env.local
+.env.*.local
 
-# Bỏ qua các tệp tạm thời hoặc log
-*.log
-*.tmp
-*.bak
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
-# Bỏ qua các tệp hệ điều hành
+# OS
 .DS_Store
 Thumbs.db
 
-# Bỏ qua các tệp environment
-.env
+# Logs
+logs/
+*.log
+
+# Build output
+dist/
+build/
+coverage/
+
+# Temporary files
+tmp/
+temp/
+
+# Debug
+.debug/ 
