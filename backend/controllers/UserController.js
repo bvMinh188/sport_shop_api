@@ -151,9 +151,9 @@ class UserController {
     // [GET] /api/users/profile
     async getProfile(req, res, next) {
         try {
-            const user = await User.findById(req.user._id);
-
-            if (!user) {
+            // Kiểm tra user tồn tại
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
                 return res.status(404).json({
                     success: false,
                     message: 'User not found'
@@ -162,7 +162,7 @@ class UserController {
 
             res.json({
                 success: true,
-                data: { user }
+                data: { existingUser }
             });
         } catch (error) {
             next(error);

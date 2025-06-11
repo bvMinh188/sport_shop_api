@@ -21,19 +21,55 @@ class CartController {
     // [GET] /api/cart
     async getCart(req, res, next) {
         try {
-            
-            const userId = req.user.id;
-            let cart = await Cart.findOne({ userId }).populate('items.product');
-
-            if (!cart) {
-                cart = await Cart.create({ userId, items: [] });
+            // Kiểm tra user tồn tại
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
             }
 
-            res.json({
+            // Tìm tất cả cart items của user và populate thông tin sản phẩm
+            const cartItems = await Cart.find({ userId: req.user._id })
+                .populate({
+                    path: 'product',
+                    select: 'name price image category'
+                });
+
+            // Format lại dữ liệu và lọc bỏ các items có product không tồn tại
+            const formattedCartItems = cartItems
+                .filter(item => item.product) // Lọc bỏ các items có product là null/undefined
+                .map(item => {
+                    try {
+                        return {
+                            _id: item._id,
+                            productId: item.product._id,
+                            productName: item.product.name,
+                            price: item.product.price,
+                            image: item.product.image,
+                            category: item.product.category,
+                            size: item.size,
+                            quantity: item.quantity,
+                            createdAt: item.createdAt,
+                            updatedAt: item.updatedAt
+                        };
+                    } catch (error) {
+                        console.error('Error formatting cart item:', error);
+                        return null;
+                    }
+                })
+                .filter(item => item !== null); // Lọc bỏ các items bị lỗi khi format
+
+            return res.json({
                 success: true,
-                data: { cart }
+                data: {
+                    cart: formattedCartItems
+                }
             });
+
         } catch (error) {
+            console.error('Get cart error:', error);
             next(error);
         }
     }
@@ -41,11 +77,12 @@ class CartController {
     // [POST] /api/cart/add
     async addToCart(req, res, next) {
         try {
-            // 1. Kiểm tra user đăng nhập
-            if (!req.user || !req.user._id) {
-                return res.status(401).json({
+            // Kiểm tra user tồn tại
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
+                return res.status(404).json({
                     success: false,
-                    message: 'Missing token'
+                    message: 'User not found'
                 });
             }
 

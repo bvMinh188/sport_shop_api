@@ -4,7 +4,7 @@ const cartController = require('../controllers/CartController');
 const authMiddleware = require('../middleware/auth');
 
 // All cart routes require authentication
-router.use('/cart',authMiddleware.verifyToken);
+router.use(authMiddleware.verifyToken);
 
 // Get cart
 router.get('/cart', cartController.getCart);
