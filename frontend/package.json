@@ -1,13 +1,46 @@
 {
-  "name": "sport-shop-frontend",
+  "name": "sport_shop",
   "version": "1.0.0",
-  "description": "Frontend for Sport Shop",
-  "main": "server.js",
-  "type": "module",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "nodemon --inspect src/index.js",
+    "watch": "node-sass --watch src/resources/scss/ --output src/public/css/ ",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bvMinh188/sport_shop.git"
+  },
+  "keywords": [
+    "sport",
+    "shop"
+  ],
+  "author": "vmbui",
+  "license": "ISC",
+  "description": "",
   "dependencies": {
-    "express": "^4.18.2"
+    "axios": "^1.7.7",
+    "bcrypt": "^5.1.1",
+    "connect-flash": "^0.1.1",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.5.0",
+    "express": "^4.21.0",
+    "express-handlebars": "^8.0.1",
+    "express-session": "^1.18.1",
+    "jsonwebtoken": "^9.0.2",
+    "method-override": "^3.0.0",
+    "mongoose": "^8.7.0",
+    "mongoose-slug-updater": "^3.3.0",
+    "node-mailjet": "^6.0.8",
+    "slugify": "^1.6.6",
+    "sport_shop": "file:"
+  },
+  "devDependencies": {
+    "mongoose-delete": "^1.0.2",
+    "morgan": "^1.10.0",
+    "node-sass": "^9.0.0",
+    "nodemon": "^3.1.7"
   }
-} 
+}

@@ -1,0 +1,745 @@
+<div class="container">
+    <div class="row">
+        <div class="col-md-5">
+            <div class="delivery-address mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-map-marker-alt text-danger me-2"></i>
+                        <h5 class="mb-0">Địa Chỉ Nhận Hàng</h5>
+                    </div>
+                    <button type="button" class="btn btn-link text-danger" id="changeAddress">Thay Đổi</button>
+                </div>
+                <div id="selectedAddress" class="selected-address p-3">
+                    <p class="text-muted">Đang tải địa chỉ...</p>
+                            </div>
+                            </div>
+                        </div>
+
+        <div class="col-md-7">
+            <div class="order-info">
+                <h3>Thông tin đơn hàng</h3>
+                <div class="loading text-center py-5">
+                    <div class="spinner-border text-danger" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="mt-2">Đang tải thông tin giỏ hàng...</p>
+                </div>
+                </div>
+            </div>
+
+        <!-- Modal Địa Chỉ -->
+            <div class="modal fade" id="addressModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Địa Chỉ Của Tôi</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="address-list">
+                            <!-- Danh sách địa chỉ sẽ được render bằng JS -->
+                            </div>
+
+                            <button class="btn btn-outline-danger w-100 mt-3" id="addNewAddress">
+                                <i class="fas fa-plus"></i> Thêm Địa Chỉ Mới
+                            </button>
+
+                            <div id="newAddressForm" class="mt-3" style="display: none;">
+                                <div class="form-group mb-3">
+                                    <label for="newName" class="form-label">Tên người nhận</label>
+                                    <input type="text" class="form-control" id="newName" placeholder="Nhập tên người nhận">
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="newPhone" class="form-label">Số điện thoại</label>
+                                    <input type="tel" class="form-control" id="newPhone" placeholder="Nhập số điện thoại">
+                                </div>
+                                <div class="form-group mb-3">
+                                    <label for="newAddress" class="form-label">Địa chỉ</label>
+                                    <textarea class="form-control" id="newAddress" rows="3"
+                                              placeholder="Nhập địa chỉ chi tiết (Số nhà, Đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố)"></textarea>
+                                </div>
+                                <div class="form-check mb-3">
+                                    <input type="checkbox" class="form-check-input" id="setAsDefault">
+                                    <label class="form-check-label" for="setAsDefault">
+                                        Đặt làm địa chỉ mặc định
+                                    </label>
+                                </div>
+                                <div class="d-flex justify-content-end">
+                                    <button type="button" class="btn btn-secondary me-2" id="cancelAdd">Hủy</button>
+                                    <button type="button" class="btn btn-danger" id="saveAddress">Hoàn thành</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+            </div>
+        </div>
+
+        <form id="orderForm">
+            <div class="row mt-3">
+                <div class="col-md-8">
+                </div>
+                <div class="col-md-4 d-flex flex-column justify-content-between align-items-end">
+                    <div class="mb-3">
+                        <h5>Tổng tiền: <span id="price">{{formatPrince tong}}</span></h5>
+                    </div>
+                    <button type="submit" class="btn btn-danger">Đặt hàng</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Xác Nhận Xóa -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Xác nhận xóa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Bạn có chắc chắn muốn xóa sản phẩm này khỏi giỏ hàng?</p>
+                <div class="product-info mt-3">
+                    <div class="d-flex align-items-center">
+                        <img id="deleteProductImage" src="" alt="" class="me-3" style="width: 80px; height: 80px; object-fit: cover;">
+                        <div>
+                            <h6 id="deleteProductName" class="mb-1"></h6>
+                            <p class="mb-1">Size: <span id="deleteProductSize"></span></p>
+                            <p class="mb-0">Số lượng: <span id="deleteProductQuantity"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Xóa</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="message-container">
+    <div class="message"></div>
+</div>
+
+<style>
+    .message-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        visibility: hidden;
+        opacity: 0;
+        transition: all 0.3s ease;
+        min-width: 300px;
+        text-align: center;
+    }
+
+    .message {
+        padding: 15px 25px;
+        border-radius: 8px;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        color: white;
+        background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    .message.success {
+        background-color: rgba(40, 167, 69, 0.95);
+    }
+
+    .message.error {
+        background-color: rgba(220, 53, 69, 0.95);
+    }
+
+    .message i {
+        font-size: 20px;
+    }
+
+    .message span {
+        font-weight: 500;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, calc(-50% + 20px));
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+    }
+
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+        to {
+            opacity: 0;
+            transform: translate(-50%, calc(-50% - 20px));
+        }
+    }
+
+    .message-container.show {
+        visibility: visible;
+        opacity: 1;
+        animation: fadeIn 0.3s ease forwards;
+    }
+
+    .message-container.hide {
+        animation: fadeOut 0.3s ease forwards;
+    }
+
+    .product-info {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+    }
+
+    #deleteConfirmModal .modal-content {
+        border-radius: 8px;
+        border: none;
+    }
+
+    #deleteConfirmModal .modal-header {
+        border-bottom: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+
+    #deleteConfirmModal .modal-footer {
+        border-top: 1px solid #dee2e6;
+        padding: 1rem;
+    }
+
+    #deleteConfirmModal .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    #deleteConfirmModal .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+    }
+</style>
+
+<script>
+$(document).ready(function(){
+    let selectedAddressValue = '';
+    let cartData = [];
+    let userData = null;
+
+    // Fetch user profile and cart data
+    async function loadData() {
+        try {
+            const token = getCookie('token');
+            if (!token) {
+                window.location.href = '/auth/login';
+                return;
+            }
+
+            // Fetch user profile
+            const profileResponse = await fetch('http://localhost:3000/api/users/profile', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+
+            if (!profileResponse.ok) {
+                throw new Error('Failed to load profile');
+            }
+
+            const profileData = await profileResponse.json();
+            if (!profileData.success) {
+                throw new Error(profileData.message || 'Failed to load profile');
+            }
+
+            // Update user info
+            userData = profileData.data.user;
+            updateUserInfo(userData);
+
+            // Fetch cart data
+            const cartResponse = await fetch('http://localhost:3000/api/cart', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+
+            if (!cartResponse.ok) {
+                throw new Error('Failed to load cart');
+            }
+
+            const cartResult = await cartResponse.json();
+            if (!cartResult.success) {
+                throw new Error(cartResult.message || 'Failed to load cart');
+            }
+
+            // Update cart items
+            cartData = cartResult.data.cart;
+            updateCartItems(cartData);
+
+            // Set default address if exists
+            if (userData.addresses && userData.addresses.length > 0) {
+                const defaultAddress = userData.addresses.find(addr => addr.isDefault) || userData.addresses[0];
+                selectedAddressValue = defaultAddress.address;
+                updateSelectedAddress(defaultAddress.address);
+                updateAddressList(userData.addresses);
+            } else {
+                $('#selectedAddress').html('<p class="text-muted">Chưa có địa chỉ</p>');
+            }
+
+        } catch (error) {
+            console.error('Error loading data:', error);
+            if (error.message.includes('token')) {
+                showMessage('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại', 'error');
+                setTimeout(() => {
+                    window.location.href = '/auth/login';
+                }, 2000);
+            } else {
+                showMessage(error.message || 'Có lỗi xảy ra khi tải dữ liệu', 'error');
+            }
+        }
+    }
+
+    function updateUserInfo(user) {
+        if (!user) return;
+        $('#customerName').val(user.username || '');
+        $('#customerEmail').val(user.email || '');
+        $('#customerPhone').val(user.phone || '');
+    }
+
+    function updateCartItems(items) {
+        if (!items || items.length === 0) {
+            $('.order-info').html(`
+                <h3>Thông tin đơn hàng</h3>
+                <div class="empty-cart text-center py-5">
+                    <i class="fas fa-shopping-cart fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Bạn vẫn chưa chọn sản phẩm nào để mua</h5>
+                    <a href="/" class="btn btn-danger mt-3">Tiếp tục mua sắm</a>
+                </div>
+            `);
+            return;
+        }
+
+        const tableHtml = `
+            <h3>Thông tin đơn hàng</h3>
+            <table class="table mt-4">
+                <thead>
+                    <tr>
+                        <th scope="col">Tên sản phẩm</th>
+                        <th scope="col"></th>
+                        <th scope="col">Giá</th>
+                        <th scope="col">Size</th>
+                        <th scope="col">Số lượng</th>
+                        <th scope="col">Sửa</th>
+                        <th scope="col">Xóa</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${items.map(item => `
+                        <tr>
+                            <td class="name">${item.productName}</td>
+                            <td><img src="${item.image}" width="100px" height="100px"></td>
+                            <td>${formatCurrency(item.price)}</td>
+                            <td>${item.size}</td>
+                            <td>
+                                <span class="quantity">${item.quantity}</span>
+                                <input type="number" class="form-control quantity-input" value="${item.quantity}" min="1" style="display: none;" name="quantity">
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-success edit-btn">Sửa</button>
+                                <button type="button" class="btn btn-success update-btn" data-id="${item._id}" data-size="${item.size}" style="display: none;">Cập nhật</button>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-danger delete-btn" data-id="${item._id}" data-size="${item.size}">Xóa</button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
+        $('.order-info').html(tableHtml);
+
+        // Calculate total
+        const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        $('#price').text(formatCurrency(total));
+
+        // Reattach event handlers
+        attachEventHandlers();
+    }
+
+    function attachEventHandlers() {
+        // Edit button handler
+        $('.edit-btn').click(function() {
+            const row = $(this).closest('tr');
+        row.find('.quantity').hide();
+        row.find('.quantity-input').show();
+        $(this).hide();
+        row.find('.update-btn').show();
+    });
+
+        // Update button handler
+        $('.update-btn').click(async function() {
+            const row = $(this).closest('tr');
+            const itemId = $(this).data('id');
+            const quantity = parseInt(row.find('.quantity-input').val());
+
+            if (!quantity || quantity < 1) {
+                showMessage('Vui lòng nhập số lượng hợp lệ', 'error');
+                return;
+            }
+
+            try {
+                const token = getCookie('token');
+                const response = await fetch(`http://localhost:3000/api/cart/update/${itemId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ quantity })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showMessage('Cập nhật số lượng thành công', 'success');
+                    loadData(); // Reload data
+                } else {
+                    showMessage(result.message || 'Có lỗi xảy ra khi cập nhật', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating quantity:', error);
+                showMessage('Có lỗi xảy ra khi cập nhật số lượng', 'error');
+            }
+        });
+
+        // Delete button handler
+        $('.delete-btn').click(function() {
+            const itemId = $(this).data('id');
+            deleteCartItem(itemId);
+        });
+    }
+
+    async function deleteCartItem(itemId) {
+        try {
+            const token = getCookie('token');
+            const response = await fetch(`http://localhost:3000/api/cart/remove/${itemId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                showMessage('Đã xóa sản phẩm khỏi giỏ hàng', 'success');
+                loadData(); // Reload data
+        } else {
+                showMessage(result.message || 'Có lỗi xảy ra khi xóa sản phẩm', 'error');
+            }
+        } catch (error) {
+            console.error('Error deleting item:', error);
+            showMessage('Có lỗi xảy ra khi xóa sản phẩm', 'error');
+        }
+    }
+
+    function updateAddressList(addresses) {
+        const addressListHtml = addresses.map(addr => `
+            <div class="address-item p-3 mb-2 border rounded">
+                <div class="d-flex justify-content-between">
+                    <div class="address-info">
+                        <div class="user-info mb-2">
+                            <span class="name">${addr.name}</span>
+                            <span class="divider">|</span>
+                            <span class="phone">${addr.phone || ''}</span>
+                        </div>
+                        <div class="address-text">
+                            ${addr.address}
+                            ${addr.isDefault ? '<span class="default-badge">Mặc Định</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="address-actions">
+                        <button class="btn btn-outline-danger btn-sm select-address" 
+                                data-address="${addr.address}"
+                                data-name="${addr.name}">
+                            Chọn
+                        </button>
+                        ${!addr.isDefault ? `
+                            <button class="btn btn-outline-secondary btn-sm set-default-address" 
+                                    data-address-id="${addr._id}">
+                                Đặt mặc định
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        $('.address-list').html(addressListHtml);
+        }
+
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('vi-VN', {
+            style: 'currency',
+            currency: 'VND'
+        }).format(amount);
+    }
+
+    // Load data when page loads
+    loadData();
+
+    let deleteProductData = null;
+
+    $('#changeAddress').click(function() {
+        $('#addressModal').modal('show');
+        // Ensure the "Thay Đổi" button remains visible
+        $(this).show();
+    });
+
+    $('#addNewAddress').click(function() {
+        $(this).hide();
+        $('#newAddressForm').show();
+    });
+
+    $('#cancelAdd').click(function() {
+        $('#newAddressForm').hide();
+        $('#addNewAddress').show();
+        $('#newName').val('');
+        $('#newPhone').val('');
+        $('#newAddress').val('');
+        $('#setAsDefault').prop('checked', false);
+    });
+
+    $('#saveAddress').click(async function() {
+        const name = $('#newName').val().trim();
+        const phone = $('#newPhone').val().trim();
+        const address = $('#newAddress').val().trim();
+        const setAsDefault = $('#setAsDefault').is(':checked');
+
+        if (!newAddress) {
+            showMessage('Vui lòng nhập địa chỉ chi tiết', 'error');
+            return;
+        }
+
+        const saveButton = $(this);
+        saveButton.prop('disabled', true)
+            .html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
+
+        try {
+            const token = getCookie('token');
+            const response = await fetch('http://localhost:3000/api/users/addresses', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: name,
+                    phone: phone,
+                    address: address,
+                    isDefault: setAsDefault === true ? true : false
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Có lỗi xảy ra');
+            }
+
+            // Reload the page after successful addition
+            window.location.href = '/cart/show';
+        } catch (error) {
+            console.error('Error adding address:', error);
+            showMessage(error.message || 'Có lỗi xảy ra khi thêm địa chỉ', 'error');
+        } finally {
+                saveButton.prop('disabled', false).text('Hoàn thành');
+                window.location.href = '/cart/show';
+            }
+    });
+
+    $(document).on('click', '.select-address', function() {
+        const address = $(this).data('address');
+        selectedAddressValue = address;  // Lưu địa chỉ thuần túy
+        updateSelectedAddress(address);
+        $('#addressModal').modal('hide');
+    });
+
+    $(document).on('click', '.set-default-address', async function() {
+        const addressId = $(this).data('address-id');
+        const button = $(this);
+        
+        try {
+            button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+            
+            const token = getCookie('token');
+            const response = await fetch('http://localhost:3000/api/users/set-default-address', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ addressId })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.message || 'Có lỗi xảy ra');
+            }
+            
+            // Update UI and reload data
+            button.html('Đặt mặc định');
+            showMessage('success', 'Đã đặt địa chỉ mặc định thành công');
+            window.location.href = '/cart/show';
+            
+        } catch (error) {
+            console.error('Error setting default address:', error);
+            showMessage(error.message || 'Có lỗi xảy ra khi đặt địa chỉ mặc định', 'error');
+        } finally {
+            button.prop('disabled', false);
+        }
+    });
+
+    function updateSelectedAddress(address, type) {
+        const selectedAddr = userData.addresses.find(addr => addr.address === address);
+        if (!selectedAddr) return;
+
+        $('#selectedAddress').html(`
+            <div class="current-address">
+                <div class="user-info">
+                    <span class="name">${selectedAddr.name}</span>
+                    <span class="divider">|</span>
+                    <span class="phone">${selectedAddr.phone || ''}</span>
+                </div>
+                <div class="address-text">
+                    ${selectedAddr.address}
+                </div>
+            </div>
+        `);
+    }
+
+    $("#orderForm").submit(function(event) {
+        event.preventDefault();
+        
+        if (!$('.table').length) {
+            showMessage('Bạn vẫn chưa chọn sản phẩm nào để mua hàng', 'error');
+            return;
+        }
+        
+        if (!selectedAddressValue) {
+            showMessage('Vui lòng chọn địa chỉ giao hàng', 'error');
+            return;
+        }
+
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.text();
+        submitBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
+
+        // Gọi API đặt hàng
+        createOrder(selectedAddressValue, submitBtn, originalText);
+    });
+
+    async function createOrder(address, submitBtn, originalText) {
+        try {
+            const token = getCookie('token');
+            const selectedAddr = userData.addresses.find(addr => addr.address === address);
+            
+            if (!selectedAddr) {
+                throw new Error('Không tìm thấy thông tin địa chỉ');
+            }
+
+            const response = await fetch('http://localhost:3000/api/orders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    name: selectedAddr.name,
+                    phone: selectedAddr.phone,
+                    address: selectedAddr.address
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                    showMessage('Đặt hàng thành công', 'success');
+                    setTimeout(() => {
+                        window.location.href = "/user/profile";
+                }, 1500);
+                } else {
+                showMessage(result.message || 'Có lỗi xảy ra khi đặt hàng', 'error');
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        } catch (error) {
+            console.error('Error creating order:', error);
+            showMessage('Có lỗi xảy ra khi đặt hàng', 'error');
+            submitBtn.prop('disabled', false).text(originalText);
+        }
+    }
+
+    // Xử lý nút đặt địa chỉ mặc định
+    $(document).on('click', '.set-default-address', async function(e) {
+        e.preventDefault();
+        const addressId = $(this).data('address-id');
+        
+        try {
+            const token = getCookie('token');
+            const response = await fetch('http://localhost:3000/api/users/set-default-address', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include',
+                body: JSON.stringify({ addressId })
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                    showMessage('Đã đặt địa chỉ mặc định', 'success');
+                loadData(); // Reload data to update the UI
+                } else {
+                showMessage(result.message || 'Có lỗi xảy ra khi đặt địa chỉ mặc định', 'error');
+                }
+        } catch (error) {
+            console.error('Error setting default address:', error);
+                showMessage('Có lỗi xảy ra khi đặt địa chỉ mặc định', 'error');
+            }
+    });
+
+    function showMessage(message, type = 'success') {
+        const messageContainer = $('.message-container');
+        const messageElement = $('.message');
+        
+        // Thêm icon cho message
+        const icon = type === 'success' ? 'check-circle' : 'exclamation-circle';
+        messageElement.html(`
+            <i class="fas fa-${icon}"></i>
+            <span>${message}</span>
+        `);
+        
+        messageElement.removeClass('success error').addClass(type);
+        messageContainer.removeClass('hide').addClass('show');
+        
+        setTimeout(() => {
+            messageContainer.removeClass('show').addClass('hide');
+        }, 2000);
+    }
+});
+</script>

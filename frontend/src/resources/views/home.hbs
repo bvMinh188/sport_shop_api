@@ -1,0 +1,167 @@
+
+<!-- Main Products Section -->
+<div class="container mt-4" id="products">
+    <h2 class="text-center mb-4">GIÀY THỂ THAO</h2>
+
+    <!-- Nút lọc danh mục -->
+    <div class="text-center mb-4" id="category-filters">
+        <!-- Button danh mục sẽ render bằng JS -->
+    </div>
+
+    <!-- Nút lọc theo giá -->
+    <div class="btn-group mb-4">
+        <button type="button" id="filterButton" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+            Lọc
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a href="#" class="dropdown-item price-filter" data-sort="asc">Giá tăng dần</a></li>
+            <li><a href="#" class="dropdown-item price-filter" data-sort="desc">Giá giảm dần</a></li>
+        </ul>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="row" id="product-list">
+        <!-- Sản phẩm sẽ render bằng JS -->
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination-container text-center mt-4">
+        <ul class="pagination" id="pagination">
+            <!-- Phân trang sẽ render bằng JS -->
+        </ul>
+    </div>
+</div>
+
+<!-- Swiper CSS -->
+<link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+<!-- Swiper JS -->
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    const apiBase = 'http://localhost:3000/api';
+    let currentPage = 1;
+    let selectedCategory = '';
+    let sort = '';
+    let totalPages = 1;
+    let categories = [];
+
+    function fetchCategories() {
+        return $.get(`${apiBase}/categories`).then(res => res.data.categories);
+    }
+
+    function fetchProducts(page = 1, category = '', sort = '') {
+        let url = `${apiBase}/products`;
+        let params = { page, limit: 12 };
+        if (category) {
+            url = `${apiBase}/products/category/${encodeURIComponent(category)}`;
+        }
+        if (sort) params.sort = sort;
+        return $.get(url, params).then(res => res.data);
+    }
+
+    function renderCategories() {
+        let html = `<a href="#" class="btn btn-outline-success category-filter ${!selectedCategory ? 'active' : ''}" data-category="">Tất Cả</a>`;
+        categories.forEach(cat => {
+            html += `<a href="#" class="btn btn-outline-success category-filter ${selectedCategory === cat.name ? 'active' : ''}" data-category="${cat.name}">${cat.name}</a>`;
+        });
+        $('#category-filters').html(html);
+    }
+
+    function renderProducts(products) {
+        let html = '';
+        if (!products.length) {
+            html = '<div class="col-12 text-center">Không có sản phẩm nào.</div>';
+        } else {
+            products.forEach(product => {
+                html += `<div class="col-md-3 mb-4">
+                    <div class="product-card position-relative">
+                        <a href="/products/${product._id}" class="product-link">
+                            <div class="product-image-container">
+                                <img src="${product.image}" alt="${product.name}" class="product-image">
+                            </div>
+                        </a>
+                        <div class="product-info">
+                            <h5 class="product-title">${product.name}</h5>
+                            <div class="product-price">
+                                <span class="current-price">${formatPrince(product.price)}</span>
+                                ${product.originalPrice ? `<span class="original-price">${formatPrince(product.originalPrice)}</span>` : ''}
+                            </div>
+                            <div class="sold-count">Đã bán: ${product.sold}</div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+        }
+        $('#product-list').html(html);
+    }
+
+    function renderPagination(current, total) {
+        let html = '';
+        if (total <= 1) return $('#pagination').html('');
+        if (current > 1) {
+            html += `<li class="page-item"><a class="page-link pagination-link" data-page="${current - 1}">❮</a></li>`;
+        }
+        for (let i = 1; i <= total; i++) {
+            html += `<li class="page-item ${i === current ? 'active' : ''}"><a class="page-link pagination-link" data-page="${i}">${i}</a></li>`;
+        }
+        if (current < total) {
+            html += `<li class="page-item"><a class="page-link pagination-link" data-page="${current + 1}">❯</a></li>`;
+        }
+        $('#pagination').html(html);
+    }
+
+    function formatPrince(price) {
+        return price ? Number(price).toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }) : '';
+    }
+
+    function loadAll() {
+        fetchCategories().then(cats => {
+            categories = cats;
+            renderCategories();
+        });
+        fetchProducts(currentPage, selectedCategory, sort).then(data => {
+            renderProducts(data.products);
+            totalPages = data.pagination.totalPages;
+            renderPagination(currentPage, totalPages);
+        });
+    }
+
+    $(document).ready(function () {
+        loadAll();
+
+        // Lọc theo danh mục
+        $(document).on('click', '.category-filter', function (e) {
+            e.preventDefault();
+            selectedCategory = $(this).data('category') || '';
+            currentPage = 1;
+            $('.category-filter').removeClass('active');
+            $(this).addClass('active');
+            loadAll();
+        });
+
+        // Lọc theo giá
+        $(document).on('click', '.price-filter', function (e) {
+            e.preventDefault();
+            const sortType = $(this).data('sort');
+            if (sortType === 'asc') {
+                sort = 'price';
+            } else if (sortType === 'desc') {
+                sort = '-price';
+            } else {
+                sort = '';
+            }
+            currentPage = 1;
+            loadAll();
+            $('#filterButton').text($(this).text());
+        });
+
+        // Phân trang
+        $(document).on('click', '.pagination-link', function (e) {
+            e.preventDefault();
+            currentPage = parseInt($(this).data('page'));
+            loadAll();
+        });
+    });
+</script>
+

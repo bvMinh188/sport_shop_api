@@ -19,6 +19,6 @@ router.put('/users/password', userController.changePassword);
 router.post('/users/addresses', userController.addAddress);
 router.put('/users/addresses/:id', userController.updateAddress);
 router.delete('/users/addresses/:id', userController.deleteAddress);
-router.put('/users/addresses/:id/default', userController.setDefaultAddress);
+router.put('/users/set-default-address', userController.setDefaultAddress);
 
 module.exports = router; 

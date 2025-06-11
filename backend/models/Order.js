@@ -11,6 +11,8 @@ const Order = new Schema({
         ref: "User",
         required: true
     },
+    name: { type: String, required: true },
+    phone: { type: String, required: true },
     products: [{
         name: { type: String, required: true },
         image: { type: String },

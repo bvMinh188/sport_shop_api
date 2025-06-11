@@ -13,16 +13,16 @@ const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
 // Map status tiếng Việt sang tiếng Anh
 const STATUS_MAP = {
     'chờ xác nhận': 'pending',
-    'đang giao': 'shipping',
-    'đã giao': 'delivered',
+    'đang giao hàng': 'shipping',
+    'đã giao hàng': 'delivered',
     'đã hủy': 'cancelled'
 };
 
 // Map status tiếng Anh sang tiếng Việt để hiển thị
 const STATUS_MAP_VI = {
     'pending': 'Chờ xác nhận',
-    'shipping': 'Đang giao',
-    'delivered': 'Đã giao',
+    'shipping': 'Đang giao hàng',
+    'delivered': 'Đã giao hàng',
     'cancelled': 'Đã hủy'
 };
 
@@ -103,6 +103,8 @@ class OrderController {
             // 6. Tạo đơn hàng mới
             const order = new Order({
                 userId,
+                name: req.body.name,
+                phone: req.body.phone,
                 products: products,
                 price: totalAmount.toString(), // Chuyển sang string theo yêu cầu của schema
                 address: req.body.address,
@@ -234,13 +236,14 @@ class OrderController {
     // [PUT] /api/orders/:id/cancel
     async cancelOrder(req, res, next) {
         try {
-            const userId = req.user.id;
+            const userId = req.user._id;
             const orderId = req.params.id;
 
             const order = await Order.findOne({
                 _id: orderId,
                 userId
             });
+
 
             if (!order) {
                 return res.status(404).json({
@@ -249,22 +252,22 @@ class OrderController {
                 });
         }
 
-            if (!['pending', 'processing'].includes(order.status)) {
+            if (order.status !== 'chờ xác nhận') {
                 return res.status(400).json({
                     success: false,
-                    message: 'Order cannot be cancelled'
+                    message: 'Chỉ có thể hủy đơn hàng đang ở trạng thái chờ xác nhận'
                 });
-    }
+            }
 
             // Return stock to products
-            for (const item of order.items) {
+            for (const product of order.products) {
                 await Product.updateOne(
-                    { _id: item.product, 'sizes.size': item.size },
-                    { $inc: { 'sizes.$.quantity': item.quantity } }
+                    { _id: product.product, 'sizes.size': product.size },
+                    { $inc: { 'sizes.$.quantity': product.quantity } }
                 );
             }
 
-            order.status = 'cancelled';
+            order.status = 'đã hủy';
             await order.save();
 
             res.json({

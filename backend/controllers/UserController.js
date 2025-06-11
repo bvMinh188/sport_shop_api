@@ -344,35 +344,52 @@ class UserController {
     // [POST] /api/users/addresses
     async addAddress(req, res, next) {
         try {
-            const { address, isDefault } = req.body;
+            const {name, phone, address, isDefault } = req.body;
 
-            if (!address) {
+            // Validate required fields
+            if (!phone || !address || !name) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Address is required'
+                    message: 'Phone and address are required'
                 });
             }
 
-            const user = await User.findById(req.user.id);
-
-            // If this is the first address or isDefault is true, set as default
-            if (isDefault || user.addresses.length === 0) {
-                user.addresses.forEach(addr => addr.isDefault = false);
+            // Check if user exists
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
             }
 
-            user.addresses.push({
+            // Create new address object
+            const newAddress = {
+                name,
+                phone,
                 address,
-                isDefault: isDefault || user.addresses.length === 0
-            });
+                isDefault: isDefault || existingUser.addresses.length === 0 // Set as default if it's the first address
+            };
 
-            await user.save();
+            // If this is set as default, unset others
+            if (newAddress.isDefault) {
+                existingUser.addresses.forEach(addr => {
+                    addr.isDefault = false;
+                });
+            }
+
+            // Add new address to array
+            existingUser.addresses.push(newAddress);
+
+            await existingUser.save();
 
             res.status(201).json({
                 success: true,
                 message: 'Address added successfully',
-                data: { addresses: user.addresses }
+                data: { addresses: existingUser.addresses }
             });
         } catch (error) {
+            console.error('Error in addAddress:', error);
             next(error);
         }
     }
@@ -455,32 +472,54 @@ class UserController {
         }
     }
 
-    // [PUT] /api/users/addresses/:id/default
+    // [PUT] /api/users/set-default-address
     async setDefaultAddress(req, res, next) {
         try {
-            const addressId = req.params.id;
-            const user = await User.findById(req.user.id);
-            const addressToSetDefault = user.addresses.id(addressId);
+            const { addressId } = req.body;
 
-            if (!addressToSetDefault) {
+            // Check if user exists
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // Validate addressId
+            if (!addressId) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Address ID is required'
+                });
+            }
+
+            // Find the address with the given ID
+            const address = existingUser.addresses.find(addr => addr._id.toString() === addressId);
+            if (!address) {
                 return res.status(404).json({
                     success: false,
                     message: 'Address not found'
                 });
             }
 
-            user.addresses.forEach(addr => {
-                addr.isDefault = addr._id.toString() === addressId;
+            // Set all other addresses to not default
+            existingUser.addresses.forEach(addr => {
+                addr.isDefault = false;
             });
 
-            await user.save();
+            // Set the selected address as default
+            address.isDefault = true;
 
-            res.json({
-                success: true,
+            await existingUser.save();
+
+            res.json({ 
+                success: true, 
                 message: 'Default address updated successfully',
-                data: { addresses: user.addresses }
+                data: { addresses: existingUser.addresses }
             });
         } catch (error) {
+            console.error('Error in setDefaultAddress:', error);
             next(error);
         }
     }

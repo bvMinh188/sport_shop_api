@@ -1,0 +1,20 @@
+# Bỏ qua thư mục cấu hình của Visual Studio Code
+.vscode/
+
+# Bỏ qua thư mục node_modules
+node_modules/
+
+# Bỏ qua các tệp CSS trong thư mục src/public/css
+src/public/css/
+
+# Bỏ qua các tệp tạm thời hoặc log
+*.log
+*.tmp
+*.bak
+
+# Bỏ qua các tệp hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Bỏ qua các tệp environment
+.env

@@ -12,6 +12,7 @@ const User = new Schema({
     phone: String,
     addresses: [{
         name: String,
+        phone: String,
         address: String,
         isDefault: { type: Boolean, default: false }
     }],

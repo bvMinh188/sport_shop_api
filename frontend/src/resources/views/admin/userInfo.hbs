@@ -1,0 +1,292 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Thông Tin Người Dùng</h3>
+                        {{#if totalPages}}
+                        <nav aria-label="Page navigation" class="mb-0">
+                            <ul class="pagination mb-0">
+                                <li class="page-item {{#if (eq currentPage 1)}}disabled{{/if}}">
+                                    <a class="page-link" href="?page={{subtract currentPage 1}}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                {{#times totalPages}}
+                                <li class="page-item {{#if (eq this ../currentPage)}}active{{/if}}">
+                                    <a class="page-link" href="?page={{this}}">{{this}}</a>
+                                </li>
+                                {{/times}}
+                                <li class="page-item {{#if (eq currentPage totalPages)}}disabled{{/if}}">
+                                    <a class="page-link" href="?page={{add currentPage 1}}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                        {{/if}}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5%">STT</th>
+                                    <th style="width: 20%">Tên người dùng</th>
+                                    <th style="width: 25%">Email</th>
+                                    <th style="width: 10%">Vai trò</th>
+                                    <th style="width: 20%">Ngày tạo</th>
+                                    <th style="width: 20%">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {{#each user}}
+                                <tr>
+                                    <td class="text-center">{{sum @index 1}}</td>
+                                    <td>{{this.username}}</td>
+                                    <td>{{this.email}}</td>
+                                    <td class="text-center">
+                                        <span class="badge rounded-pill {{#if (eq this.role 'admin')}}bg-danger{{else}}bg-primary{{/if}}">
+                                            {{this.role}}
+                                        </span>
+                                    </td>
+                                    <td class="text-center">{{formatDate this.createdAt}}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <a href="/admin/users/edit/{{this._id}}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-edit"></i> Sửa
+                                            </a>
+                                            <a href="#" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#delete-user-modal-{{this._id}}">
+                                                <i class="fas fa-trash"></i> Xóa
+                                            </a>
+                                        </div>
+
+                                        <!-- Modal Xác Nhận Xóa cho từng user -->
+                                        <div class="modal fade" id="delete-user-modal-{{this._id}}" tabindex="-1">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title">Xác nhận xóa</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <div class="confirm-message">
+                                                            <div class="alert alert-warning mb-0">
+                                                            Bạn có chắc chắn muốn xóa người dùng <strong>{{this.username}}</strong>?
+                                                            </div>
+                                                        </div>
+                                                        <div id="message-container-{{this._id}}">
+                                                            <!-- Messages will be inserted here -->
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer" style="justify-content: center; gap: 10px;">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width: 100px;">Không</button>
+                                                        <button type="button" class="btn btn-danger btn-delete-user" 
+                                                                data-id="{{this._id}}" 
+                                                                data-name="{{this.username}}" 
+                                                                style="min-width: 100px;">
+                                                            Xác nhận
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {{/each}}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{#unless user.length}}
+                    <div class="alert alert-info text-center mt-3">
+                        <i class="fas fa-info-circle me-2"></i>Không tìm thấy người dùng nào.
+                    </div>
+                    {{/unless}}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    vertical-align: middle;
+}
+
+.table td {
+    vertical-align: middle;
+    padding: 0.5rem;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+}
+
+/* Style cho modal */
+.modal-content {
+    border-radius: 8px;
+    border: none;
+}
+
+.modal-header {
+    border-bottom: 1px solid #dee2e6;
+    padding: 1rem;
+}
+
+.modal-body {
+    padding: 1rem;
+}
+
+.modal-footer {
+    border-top: 1px solid #dee2e6;
+    padding: 1rem;
+}
+
+.btn {
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.btn i {
+    margin-right: 5px;
+}
+
+/* Style cho phân trang */
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-link {
+    padding: 0.375rem 0.75rem;
+}
+
+.page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.alert {
+    margin-bottom: 1rem;
+}
+
+.alert:last-child {
+    margin-bottom: 0;
+}
+
+.d-none {
+    display: none !important;
+}
+
+.modal-body .confirm-message {
+    margin-bottom: 1rem;
+}
+
+.spinner-border {
+    width: 1rem;
+    height: 1rem;
+    margin-right: 0.5rem;
+}
+
+.btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        function showMessage(userId, message, type = 'danger') {
+            const container = document.getElementById(`message-container-${userId}`);
+            container.innerHTML = `
+                <div class="alert alert-${type} mt-3 mb-0">
+                    ${message}
+                </div>
+            `;
+        }
+
+        function clearMessage(userId) {
+            const container = document.getElementById(`message-container-${userId}`);
+            container.innerHTML = '';
+        }
+
+        // Xử lý sự kiện click nút xóa user
+        const deleteButtons = document.querySelectorAll('.btn-delete-user');
+        deleteButtons.forEach(button => {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
+                
+                const userId = this.getAttribute('data-id');
+                const userName = this.getAttribute('data-name');
+                const modalElement = document.getElementById(`delete-user-modal-${userId}`);
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                
+                // Disable nút xác nhận khi đang xử lý
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý...';
+                
+                try {
+                    const response = await fetch(`/admin/users/${userId}/deleted`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok && data.success) {
+                        showMessage(userId, 'Xóa người dùng thành công!', 'success');
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showMessage(userId, data.message || 'Có lỗi xảy ra khi xóa người dùng');
+                        // Re-enable nút xác nhận
+                        this.disabled = false;
+                        this.innerHTML = 'Xác nhận';
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showMessage(userId, 'Có lỗi xảy ra khi xóa người dùng. Vui lòng thử lại sau.');
+                    // Re-enable nút xác nhận
+                    this.disabled = false;
+                    this.innerHTML = 'Xác nhận';
+                }
+            });
+        });
+
+        // Reset message khi modal được đóng
+        const deleteModals = document.querySelectorAll('.modal');
+        deleteModals.forEach(modalElement => {
+            modalElement.addEventListener('hidden.bs.modal', function() {
+                const userId = this.id.replace('delete-user-modal-', '');
+                clearMessage(userId);
+                
+                // Reset nút xác nhận
+                const deleteButton = this.querySelector('.btn-delete-user');
+                if (deleteButton) {
+                    deleteButton.disabled = false;
+                    deleteButton.innerHTML = 'Xác nhận';
+                }
+            });
+        });
+    });
+</script>

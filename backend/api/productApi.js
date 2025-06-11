@@ -5,9 +5,6 @@ const productController = require('../controllers/ProductController');
 // Get all products
 router.get('/products', productController.getAllProducts);
 
-// Get product by ID
-router.get('/products/:id', productController.getProductById);
-
 // Search products
 router.get('/products/search', productController.searchProducts);
 
@@ -16,6 +13,9 @@ router.get('/products/filter', productController.filterProducts);
 
 // Get products by category
 router.get('/products/category/:category', productController.getByCategory);
+
+// Get product by ID
+router.get('/products/:id', productController.getProductById);
 
 // Create new product
 router.post('/products', productController.createProduct);

@@ -1,0 +1,602 @@
+<div class="container">
+    <div class="row">
+        <!-- Thông tin khách hàng bên trái -->
+        <div class="col-md-6">
+            <div class="customer-info">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3>Thông tin khách hàng</h3>
+                    <button id="editButton" class="btn btn-secondary">Thay đổi thông tin</button>
+                </div>
+                <!-- Message container -->
+                <div id="messageContainer" class="message-container">
+                    <div class="message"></div>
+                </div>
+                <form id="profileForm">
+                    <div class="form-group mb-3">
+                        <label for="customerName">Tên khách hàng</label>
+                        <input type="text" class="form-control" id="customerName" name="username" readonly>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="customerEmail">Email</label>
+                        <input type="email" class="form-control" id="customerEmail" name="email" readonly>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="customerPhone">Số điện thoại</label>
+                        <input type="text" class="form-control" id="customerPhone" name="phone" readonly>
+                    </div>
+                    <div id="saveButtonContainer" style="display: none;">
+                        <button type="submit" class="btn btn-primary">Lưu thông tin</button>
+                        <button type="button" id="cancelButton" class="btn btn-secondary">Hủy</button>
+                    </div>      
+                </form>
+            </div>
+        </div>
+
+        <!-- Lịch sử mua hàng bên phải -->
+        <div class="col-md-6">
+            <div class="order-history">
+                <h4>Lịch sử mua hàng</h4>
+                <div id="ordersList"></div>
+                <div id="pagination" class="mt-3"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{{!-- Modal Xác Nhận Xóa --}}
+<div id="delete-order-modal" class="modal fade" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Hủy đơn hàng </h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Bạn có chắc chắn muốn hủy đơn hàng này không?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+        <button id="btn-delete-order" type="button" class="btn btn-danger">có</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{{!-- Form Ẩn --}}
+<form name="delete-order-form" method="POST" style="display: none;">
+    <input type="hidden" name="_method" value="DELETE">
+</form>
+
+<style>
+    .message-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        visibility: hidden;
+        opacity: 0;
+        transition: all 0.3s ease;
+        min-width: 250px;
+        text-align: center;
+    }
+
+    .message {
+        padding: 12px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        color: white;
+        font-weight: 500;
+    }
+
+    .message.success {
+        background-color: rgba(40, 167, 69, 0.95);
+    }
+
+    .message.error {
+        background-color: rgba(220, 53, 69, 0.95);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, calc(-50% + 20px));
+        }
+        to {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+    }
+
+    @keyframes fadeOut {
+        from {
+            opacity: 1;
+            transform: translate(-50%, -50%);
+        }
+        to {
+            opacity: 0;
+            transform: translate(-50%, calc(-50% - 20px));
+        }
+    }
+
+    .message-container.show {
+        visibility: visible;
+        opacity: 1;
+        animation: fadeIn 0.3s ease forwards;
+    }
+
+    .message-container.hide {
+        animation: fadeOut 0.3s ease forwards;
+    }
+
+    .order-item {
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .order-id {
+        color: #2c3e50;
+        font-size: 1.1em;
+    }
+
+    .products-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .order-product {
+        transition: all 0.3s ease;
+    }
+
+    .order-product:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .product-info {
+        color: #34495e;
+    }
+
+    .product-name {
+        color: #2c3e50;
+        font-size: 1.05em;
+    }
+
+    .order-details {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin-top: 10px;
+    }
+
+    .badge {
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-weight: 500;
+    }
+
+    .badge-pending {
+        background-color: #ffd700;
+        color: #000;
+    }
+
+    .badge-confirmed {
+        background-color: #17a2b8;
+        color: #fff;
+    }
+
+    .badge-shipping {
+        background-color: #007bff;
+        color: #fff;
+    }
+
+    .badge-delivered {
+        background-color: #28a745;
+        color: #fff;
+    }
+
+    .badge-cancelled {
+        background-color: #dc3545;
+        color: #fff;
+    }
+</style>
+
+{{!-- Add Handlebars library before your script --}}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let currentPage = 1;
+        const limit = 10;
+        let selectedOrderId = null;
+
+        // Utility function to show messages
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('messageContainer');
+            const messageElement = messageContainer.querySelector('.message');
+            
+            messageElement.textContent = message;
+            messageElement.className = 'message ' + type;
+            messageContainer.style.visibility = 'visible';
+            messageContainer.style.opacity = '1';
+            messageContainer.classList.add('show');
+
+            setTimeout(() => {
+                messageContainer.classList.add('hide');
+                setTimeout(() => {
+                    messageContainer.style.visibility = 'hidden';
+                    messageContainer.style.opacity = '0';
+                    messageContainer.classList.remove('show', 'hide');
+                }, 300);
+            }, 2000);
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('vi-VN').format(amount);
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            return new Date(dateString).toLocaleDateString('vi-VN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Get status badge class
+        function getStatusClass(status) {
+            const statusMap = {
+                'chờ xác nhận': 'badge-pending',
+                'đang giao hàng': 'badge-shipping',
+                'đã giao hàng': 'badge-delivered',
+                'đã hủy': 'badge-cancelled'
+            };
+            return statusMap[status] || 'badge-secondary';
+        }
+
+        // Get token from cookie
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        // Load user profile
+        async function loadProfile() {
+            try {
+                console.log('Fetching profile...');
+                const token = getCookie('token');
+                if (!token) {
+                    console.error('No token found');
+                    window.location.href = '/auth/login';
+                    return;
+                }
+
+                const response = await fetch('http://localhost:3000/api/users/profile', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include' // Include cookies in the request
+                });
+                console.log('Profile response:', response);
+                const data = await response.json();
+                console.log('Profile data:', data);
+
+                if (data.success) {
+                    const user = data.data.user;
+                    document.getElementById('customerName').value = user.username;
+                    document.getElementById('customerEmail').value = user.email;
+                    document.getElementById('customerPhone').value = user.phone || '';
+                } else {
+                    showMessage(data.message || 'Failed to load profile', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+                showMessage('Error loading profile', 'error');
+            }
+        }
+
+        // Load orders
+        async function loadOrders() {
+            try {
+                console.log('Fetching orders...');
+                const token = getCookie('token');
+                if (!token) {
+                    console.error('No token found');
+                    window.location.href = '/auth/login';
+                    return;
+                }
+
+                const response = await fetch('http://localhost:3000/api/orders', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+                console.log('Orders response:', response);
+                const data = await response.json();
+                console.log('Orders data:', data);
+
+                if (data.success) {
+                    const ordersHtml = data.data.map(order => `
+                        <div class="order-item mb-4">
+                            <div class="order-id mb-3">
+                                <strong>Mã đơn hàng:</strong> ${order._id}
+                            </div>
+                            <div class="products-container">
+                                ${order.products.map(product => `
+                                    <div class="order-product mb-3 p-3 border rounded bg-light">
+                                        <div class="product-info">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <img src="${product.image}" alt="${product.name}" style="width: 80px; height: 80px; object-fit: cover; margin-right: 15px;">
+                                                <div>
+                                                    <div class="product-name mb-2">
+                                                        <strong>Tên sản phẩm:</strong> ${product.name}
+                                                    </div>
+                                                    <div class="d-flex justify-content-between">
+                                                        <div class="product-size me-3">
+                                                            <strong>Size:</strong> ${product.size}
+                                                        </div>
+                                                        <div class="product-quantity">
+                                                            <strong>Số lượng:</strong> ${product.quantity}
+                                                        </div>
+                                                    </div>
+                                                    <div class="product-price mt-2">
+                                                        <strong>Giá:</strong> ${formatCurrency(product.price)}đ
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <div class="order-details mt-3 pt-3 border-top">
+                                <div class="order-total mb-2">
+                                    🛒 <strong>Tổng giá:</strong> ${order.price}
+                                </div>
+                                <div class="order-receiver mb-2">
+                                    👤 <strong>Người nhận:</strong> ${order.name}
+                                </div>
+                                <div class="order-phone mb-2">
+                                    📞 <strong>Số điện thoại:</strong> ${order.phone}
+                                </div>
+                                <div class="order-address mb-2">
+                                    📍 <strong>Địa chỉ:</strong> ${order.address}
+                                </div>
+                                <div class="order-date mb-2">
+                                    🕒 <strong>Thời gian đặt hàng:</strong> ${formatDate(order.createdAt)}
+                                </div>
+                                <div class="order-status mb-2">
+                                    <strong>Trạng thái:</strong> 
+                                    <span class="badge ${getStatusClass(order.status)}">${order.status}</span>
+                                </div>
+                                ${order.status === 'chờ xác nhận' ? `
+                                <div class="text-right">
+                                    <button class="btn btn-danger cancel-order" data-id="${order._id.toString()}">
+                                        Hủy đơn hàng
+                                    </button>
+                                </div>
+                            ` : ''}
+                            </div>
+                        </div>
+                    `).join('');
+
+                    document.getElementById('ordersList').innerHTML = ordersHtml;
+
+                    // Add event listeners to cancel buttons
+                    document.querySelectorAll('.cancel-order').forEach(button => {
+                        button.addEventListener('click', function() {
+                            selectedOrderId = this.dataset.id;
+                            $('#delete-order-modal').modal('show');
+                        });
+                    });
+
+                    // Handle cancel order confirmation
+                    document.getElementById('btn-delete-order').addEventListener('click', async function() {
+                        if (!selectedOrderId) {
+                            showMessage('Không tìm thấy ID đơn hàng', 'error');
+                            return;
+                        }
+
+                        try {
+                            const token = getCookie('token');
+                            const response = await fetch(`http://localhost:3000/api/orders/${selectedOrderId}/cancel`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                },
+                                credentials: 'include'
+                            });
+
+                            const data = await response.json();
+
+                            if (!response.ok) {
+                                const errorMessage = data.message || 'Có lỗi xảy ra khi hủy đơn hàng';
+                                console.error('API Response:', data);
+                                
+                                if (data.message === 'Order not found') {
+                                    showMessage('Đơn hàng không tồn tại hoặc không thuộc về bạn', 'error');
+                                } else if (data.message === 'Order cannot be cancelled') {
+                                    showMessage('Không thể hủy đơn hàng đã được xác nhận hoặc đang giao hàng', 'error');
+                                } else {
+                                    showMessage(errorMessage, 'error');
+                                }
+                                return;
+                            }
+
+                            if (data.success) {
+                                showMessage('Đã hủy đơn hàng thành công', 'success');
+                                // Reload orders list
+                                await loadOrders();
+                                // Close modal
+                                $('#delete-order-modal').modal('hide');
+                                selectedOrderId = null;
+                            } else {
+                                showMessage(data.message || 'Có lỗi xảy ra khi hủy đơn hàng', 'error');
+                            }
+                        } catch (error) {
+                            console.error('Error canceling order:', error);
+                            showMessage('Có lỗi xảy ra khi hủy đơn hàng', 'error');
+                        }
+                    });
+                } else {
+                    showMessage(data.message || 'Failed to load orders', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                showMessage('Error loading orders', 'error');
+                }
+        }
+
+        // Profile form handling
+        const editButton = document.getElementById('editButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const saveButtonContainer = document.getElementById('saveButtonContainer');
+        const form = document.getElementById('profileForm');
+        const inputs = form.querySelectorAll('input[readonly]');
+        const originalValues = {};
+
+        // Store original values
+        inputs.forEach(input => {
+            originalValues[input.name] = input.value;
+        });
+
+        editButton.addEventListener('click', function() {
+            inputs.forEach(input => input.removeAttribute('readonly'));
+            saveButtonContainer.style.display = 'block';
+            editButton.style.display = 'none';
+        });
+
+        cancelButton.addEventListener('click', function() {
+            inputs.forEach(input => {
+                input.setAttribute('readonly', true);
+                input.value = originalValues[input.name];
+            });
+            saveButtonContainer.style.display = 'none';
+            editButton.style.display = 'inline-block';
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const token = getCookie('token');
+                if (!token) {
+                    showMessage('Vui lòng đăng nhập lại', 'error');
+                    window.location.href = '/auth/login';
+                    return;
+                }
+
+                const response = await fetch('http://localhost:3000/api/users/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        username: data.username,
+                        email: data.email,
+                        phone: data.phone
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Cập nhật thông tin thành công', 'success');
+                    inputs.forEach(input => {
+                        input.setAttribute('readonly', true);
+                        originalValues[input.name] = input.value;
+                    });
+                    saveButtonContainer.style.display = 'none';
+                    editButton.style.display = 'inline-block';
+                } else {
+                    showMessage(result.message || 'Có lỗi xảy ra khi cập nhật thông tin', 'error');
+                    inputs.forEach(input => {
+                        input.value = originalValues[input.name];
+                        input.setAttribute('readonly', true);
+                    });
+                    saveButtonContainer.style.display = 'none';
+                    editButton.style.display = 'inline-block';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Lỗi kết nối server', 'error');
+                inputs.forEach(input => {
+                    input.value = originalValues[input.name];
+                    input.setAttribute('readonly', true);
+                });
+                saveButtonContainer.style.display = 'none';
+                editButton.style.display = 'inline-block';
+            }
+        });
+
+        // Order cancellation handling
+        document.getElementById('btn-delete-order').addEventListener('click', async function() {
+            if (!selectedOrderId) return;
+
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang hủy...';
+
+            try {
+                const response = await fetch(`/api/orders/${selectedOrderId}/cancel`, {
+                    method: 'PUT'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showMessage('Hủy đơn hàng thành công', 'success');
+                    $('#delete-order-modal').modal('hide');
+                    loadOrders();
+                } else {
+                    showMessage(result.message || 'Có lỗi xảy ra khi hủy đơn hàng', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Error cancelling order', 'error');
+            } finally {
+                this.disabled = false;
+                this.innerHTML = 'Có';
+            }
+        });
+
+        // Initial load
+        loadProfile();
+        loadOrders();
+    });
+
+    // Add this helper function to your JavaScript
+    Handlebars.registerHelper('getStatusClass', function(status) {
+        switch(status) {
+            case 'chờ xác nhận':
+                return 'badge-pending';
+            case 'đang giao':
+                return 'badge-shipping';
+            case 'đã giao':
+                return 'badge-delivered';
+            case 'đã hủy':
+                return 'badge-cancelled';
+            default:
+                return 'badge-secondary';
+        }
+    });
+</script>
+

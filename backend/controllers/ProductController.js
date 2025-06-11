@@ -190,10 +190,12 @@ class ProductController {
         try {
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
+            const sort = req.query.sort || '-createdAt'; // <-- thêm dòng này
             const category = req.params.category;
 
             const [products, total] = await Promise.all([
                 Product.find({ category })
+                    .sort(sort) // <-- thêm dòng này
                     .skip((page - 1) * limit)
                     .limit(limit)
                     .lean(),
@@ -204,8 +206,8 @@ class ProductController {
                 success: true,
                 data: {
                     products,
-                pagination: {
-                    currentPage: page,
+                    pagination: {
+                        currentPage: page,
                         totalPages: Math.ceil(total / limit),
                         totalProducts: total
                     }
@@ -222,6 +224,7 @@ class ProductController {
             const query = req.query.q;
             const page = parseInt(req.query.page) || 1;
             const limit = parseInt(req.query.limit) || 10;
+            const sort = req.query.sort || '-createdAt';
 
             if (!query) {
                 return res.status(400).json({
@@ -238,6 +241,7 @@ class ProductController {
                         { description: searchRegex }
                     ]
                 })
+                    .sort(sort)
                     .skip((page - 1) * limit)
                     .limit(limit)
                     .lean(),
