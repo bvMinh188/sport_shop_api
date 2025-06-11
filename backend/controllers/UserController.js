@@ -174,49 +174,45 @@ class UserController {
         try {
             const { username, email, phone } = req.body;
             const updateData = {};
-
-            if (username) {
-                const existingUser = await User.findOne({
-                    username,
-                    _id: { $ne: req.user.id }
-                });
-                if (existingUser) {
-                return res.status(400).json({
+            
+            // Kiểm tra user tồn tại
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
+                return res.status(404).json({
                     success: false,
-                        message: 'Username already taken'
+                    message: 'User not found'
                 });
             }
-                updateData.username = username;
-            }
 
-            if (email) {
-                const existingUser = await User.findOne({
-                    email,
-                    _id: { $ne: req.user.id }
-                });
-                if (existingUser) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Email already taken'
-                    });
-                }
-                updateData.email = email;
-            }
-
+            // Thêm các trường cần update
+            if (username) updateData.username = username;
+            if (email) updateData.email = email;
             if (phone) updateData.phone = phone;
 
-            const user = await User.findByIdAndUpdate(
-                req.user.id,
+            // Thực hiện update và lưu kết quả
+            const updatedUser = await User.findByIdAndUpdate(
+                req.user._id,
                 updateData,
-                { new: true }
-            ).select('-password');
+                { new: true }  // Trả về document sau khi update
+            );
 
-            res.json({
+            // Kiểm tra kết quả update
+            if (!updatedUser) {
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to update profile'
+                });
+            }
+
+            // Trả về response với user đã update
+            return res.json({
                 success: true,
                 message: 'Profile updated successfully',
-                data: { user }
+                data: { user: updatedUser }
             });
+
         } catch (error) {
+            console.error('Update profile error:', error);
             next(error);
         }
     }

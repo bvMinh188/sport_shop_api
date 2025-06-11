@@ -41,9 +41,18 @@ class CartController {
     // [POST] /api/cart/add
     async addToCart(req, res, next) {
         try {
-            const userId = req.user.id;
+            // 1. Kiểm tra user đăng nhập
+            if (!req.user || !req.user._id) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Missing token'
+                });
+            }
+
+            // 2. Lấy thông tin từ request
             const { productId, size, quantity } = req.body;
 
+            // 3. Validate dữ liệu đầu vào
             if (!productId || !size || !quantity) {
                 return res.status(400).json({
                     success: false,
@@ -51,7 +60,7 @@ class CartController {
                 });
             }
 
-            // Check product exists and has stock
+            // 4. Kiểm tra sản phẩm tồn tại và còn hàng
             const product = await Product.findById(productId);
             if (!product) {
                 return res.status(404).json({
@@ -60,50 +69,79 @@ class CartController {
                 });
             }
 
+            // 5. Kiểm tra size và số lượng tồn kho
             const sizeObj = product.sizes.find(s => s.size === parseInt(size));
-            if (!sizeObj || sizeObj.quantity < quantity) {
+            if (!sizeObj) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Product size not available or insufficient stock'
+                    message: 'Invalid size'
                 });
             }
 
-            let cart = await Cart.findOne({ userId });
-            if (!cart) {
-                cart = await Cart.create({ userId, items: [] });
-            }
+            // 6. Tìm giỏ hàng hiện tại của user
+            let existingCartItem = await Cart.findOne({
+                userId: req.user._id,
+                'product': productId,
+                'size': parseInt(size)
+            });
 
-            // Check if product with same size exists in cart
-            const existingItem = cart.items.find(
-                item => item.product.toString() === productId && item.size === parseInt(size)
-            );
-
-            if (existingItem) {
-                // Update quantity if total doesn't exceed stock
-                if (existingItem.quantity + quantity > sizeObj.quantity) {
+            if (existingCartItem) {
+                // 7a. Nếu sản phẩm đã tồn tại trong giỏ hàng
+                const totalQuantity = existingCartItem.quantity + quantity;
+                
+                // Kiểm tra tổng số lượng mới không vượt quá tồn kho
+                if (totalQuantity > sizeObj.quantity) {
                     return res.status(400).json({
                         success: false,
-                        message: 'Cannot add more items than available in stock'
+                        message: 'Insufficient stock'
                     });
                 }
-                existingItem.quantity += quantity;
+
+                // Cập nhật số lượng trong giỏ hàng
+                existingCartItem = await Cart.findOneAndUpdate(
+                    { _id: existingCartItem._id },
+                    { quantity: totalQuantity },
+                    { new: true }
+                ).populate('product');
+
+                return res.json({
+                    success: true,
+                    message: 'Item added to cart successfully',
+                    data: { cart: existingCartItem }
+                });
+
             } else {
-                cart.items.push({
+                // 7b. Nếu sản phẩm chưa có trong giỏ hàng
+                if (quantity > sizeObj.quantity) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Insufficient stock'
+                    });
+                }
+
+                // Tạo cart item mới
+                const newCart = new Cart({
+                    userId: req.user._id,
                     product: productId,
                     size: parseInt(size),
                     quantity: quantity
                 });
+
+                // Lưu cart
+                await newCart.save();
+                
+                // Populate product information
+                const savedCart = await Cart.findById(newCart._id).populate('product');
+
+                return res.json({
+                    success: true,
+                    message: 'Item added to cart successfully',
+                    data: { cart: savedCart }
+                });
             }
 
-            await cart.save();
-            cart = await cart.populate('items.product');
-
-            res.json({
-                success: true,
-                message: 'Item added to cart successfully',
-                data: { cart }
-            });
         } catch (error) {
+            console.error('Add to cart error:', error);
             next(error);
         }
     }
@@ -217,5 +255,4 @@ class CartController {
     }
 }
 
-module.exports = new CartController(); 
 module.exports = new CartController(); 
