@@ -162,7 +162,7 @@ class UserController {
 
             res.json({
                 success: true,
-                data: { existingUser }
+                data: { user: existingUser }
             });
         } catch (error) {
             next(error);

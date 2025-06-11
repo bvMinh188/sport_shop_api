@@ -186,10 +186,20 @@ class CartController {
     // [PUT] /api/cart/update/:itemId
     async updateCartItem(req, res, next) {
         try {
-            const userId = req.user.id;
+            // 1. Kiểm tra user tồn tại
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // 2. Lấy thông tin từ request
             const { itemId } = req.params;
             const { quantity } = req.body;
 
+            // 3. Validate số lượng
             if (!quantity || quantity < 1) {
                 return res.status(400).json({
                     success: false,
@@ -197,42 +207,60 @@ class CartController {
                 });
             }
 
-            let cart = await Cart.findOne({ userId });
-            if (!cart) {
-                return res.status(404).json({
-                    success: false,
-                    message: 'Cart not found'
-                });
-            }
+            // 4. Tìm cart item
+            let existingCartItem = await Cart.findOne({
+                _id: itemId,
+                userId: req.user._id
+            });
 
-            const cartItem = cart.items.id(itemId);
-            if (!cartItem) {
+            if (!existingCartItem) {
                 return res.status(404).json({
                     success: false,
                     message: 'Cart item not found'
                 });
             }
 
-            // Check stock availability
-            const product = await Product.findById(cartItem.product);
-            const sizeObj = product.sizes.find(s => s.size === cartItem.size);
-            if (!sizeObj || sizeObj.quantity < quantity) {
+            // 5. Kiểm tra sản phẩm và tồn kho
+            const product = await Product.findById(existingCartItem.product);
+            if (!product) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Product not found'
+                });
+            }
+
+            // 6. Kiểm tra size và số lượng tồn kho
+            const sizeObj = product.sizes.find(s => s.size === existingCartItem.size);
+            if (!sizeObj) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Invalid size'
+                });
+            }
+
+            // 7. Kiểm tra số lượng tồn kho
+            if (quantity > sizeObj.quantity) {
                 return res.status(400).json({
                     success: false,
                     message: 'Insufficient stock'
                 });
             }
 
-            cartItem.quantity = quantity;
-            await cart.save();
-            cart = await cart.populate('items.product');
+            // 8. Cập nhật số lượng
+            existingCartItem = await Cart.findOneAndUpdate(
+                { _id: itemId },
+                { quantity: quantity },
+                { new: true }
+            );
 
-            res.json({
+            return res.json({
                 success: true,
                 message: 'Cart item updated successfully',
-                data: { cart }
+                data: { cart: existingCartItem }
             });
+
         } catch (error) {
+            console.error('Update cart error:', error);
             next(error);
         }
     }
@@ -240,27 +268,42 @@ class CartController {
     // [DELETE] /api/cart/remove/:itemId
     async removeFromCart(req, res, next) {
         try {
-            const userId = req.user.id;
-            const { itemId } = req.params;
-
-            let cart = await Cart.findOne({ userId });
-            if (!cart) {
+            // 1. Kiểm tra user tồn tại
+            const existingUser = await User.findById(req.user._id);
+            if (!existingUser) {
                 return res.status(404).json({
                     success: false,
-                    message: 'Cart not found'
+                    message: 'User not found'
                 });
             }
 
-            cart.items = cart.items.filter(item => item._id.toString() !== itemId);
-            await cart.save();
-            cart = await cart.populate('items.product');
+            // 2. Lấy thông tin từ request
+            const { itemId } = req.params;
 
+            // 3. Kiểm tra cart item tồn tại và thuộc về user
+            const cartItem = await Cart.findOne({
+                _id: itemId,
+                userId: req.user._id
+            });
+
+            if (!cartItem) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'Cart item not found'
+                });
+            }
+
+            // 4. Xóa cart item bằng findByIdAndDelete
+            await Cart.findByIdAndDelete(itemId);
+
+            // 5. Trả về response thành công
             res.json({
                 success: true,
                 message: 'Item removed from cart successfully',
-                data: { cart }
+                data: { removedItem: cartItem }
             });
         } catch (error) {
+            console.error('Remove from cart error:', error);
             next(error);
         }
     }

@@ -13,7 +13,7 @@ const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
 // Map status tiếng Việt sang tiếng Anh
 const STATUS_MAP = {
     'chờ xác nhận': 'pending',
-    'đang giao hàng': 'shipping',
+    'đang giao': 'shipping',
     'đã giao': 'delivered',
     'đã hủy': 'cancelled'
 };
@@ -21,8 +21,8 @@ const STATUS_MAP = {
 // Map status tiếng Anh sang tiếng Việt để hiển thị
 const STATUS_MAP_VI = {
     'pending': 'Chờ xác nhận',
-    'shipping': 'Đang giao hàng',
-    'delivered': 'Đã giao hàng',
+    'shipping': 'Đang giao',
+    'delivered': 'Đã giao',
     'cancelled': 'Đã hủy'
 };
 
@@ -39,80 +39,98 @@ class OrderController {
     // [POST] /api/orders
     async createOrder(req, res, next) {
         try {
-            const userId = req.user.id;
-            const { address, paymentMethod } = req.body;
+            const userId = req.user._id;
+            const { address } = req.body;
 
-            if (!address) {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Shipping address is required'
-                    });
-                }
-
-            // Get cart and validate
-            const cart = await Cart.findOne({ userId }).populate('items.product');
-            if (!cart || cart.items.length === 0) {
-                return res.status(400).json({
+            // Kiểm tra user tồn tại
+            const existingUser = await User.findById(userId);
+            if (!existingUser) {
+                return res.status(404).json({
                     success: false,
-                    message: 'Cart is empty'
+                    message: 'User not found'
                 });
             }
 
-            // Validate stock availability
-            for (const item of cart.items) {
-                const product = await Product.findById(item.product._id);
+            // 1. Kiểm tra và lấy địa chỉ mặc định nếu không có địa chỉ
+            if (!address) {
+                const user = await User.findById(userId);
+                const defaultAddress = user.addresses.find(addr => addr.isDefault) || user.addresses[0];
+                if (!defaultAddress) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Vui lòng chọn địa chỉ giao hàng'
+                    });
+                }
+                req.body.address = defaultAddress.address;
+            }
+
+            // 2. Kiểm tra giỏ hàng
+            const cartItems = await Cart.find({ userId }).populate('product');
+            if (!cartItems.length) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Giỏ hàng trống'
+                });
+            }
+
+            // 3. Kiểm tra tồn kho cho tất cả sản phẩm
+            for (const item of cartItems) {
+                const product = item.product;
                 const sizeObj = product.sizes.find(s => s.size === item.size);
                 
                 if (!sizeObj || sizeObj.quantity < item.quantity) {
                     return res.status(400).json({
                         success: false,
-                        message: `Insufficient stock for ${product.name} in size ${item.size}`
+                        message: `Không đủ hàng cho sản phẩm ${product.name} size ${item.size}`
                     });
                 }
             }
 
-            // Calculate total amount
-            const totalAmount = cart.items.reduce((sum, item) => {
+            // 4. Tính tổng tiền và chuẩn bị dữ liệu sản phẩm
+            const totalAmount = cartItems.reduce((sum, item) => {
                 return sum + (item.product.price * item.quantity);
             }, 0);
 
-            // Create order
+            // 5. Chuẩn bị dữ liệu sản phẩm cho đơn hàng
+            const products = cartItems.map(item => ({
+                name: item.product.name,
+                image: item.product.image,
+                price: item.product.price.toString(),
+                size: item.size,
+                quantity: item.quantity
+            }));
+
+            // 6. Tạo đơn hàng mới
             const order = new Order({
                 userId,
-                items: cart.items.map(item => ({
-                    product: item.product._id,
-                    name: item.product.name,
-                    price: item.product.price,
-                    quantity: item.quantity,
-                    size: item.size,
-                    image: item.product.image
-                })),
-                totalAmount,
-                address,
-                paymentMethod: paymentMethod || 'COD',
-                status: 'pending'
+                products: products,
+                price: totalAmount.toString(), // Chuyển sang string theo yêu cầu của schema
+                address: req.body.address,
+                status: 'chờ xác nhận' // Sử dụng giá trị enum tiếng Việt theo schema
             });
 
             await order.save();
 
-            // Update product stock
-            for (const item of cart.items) {
-                await Product.updateOne(
+            // 7. Cập nhật số lượng tồn kho
+            const updateStockPromises = cartItems.map(item => {
+                return Product.updateOne(
                     { _id: item.product._id, 'sizes.size': item.size },
                     { $inc: { 'sizes.$.quantity': -item.quantity } }
-            );
-            }
-            
-            // Clear cart
-            cart.items = [];
-            await cart.save();
-            
+                );
+            });
+
+            await Promise.all(updateStockPromises);
+
+            // 8. Xóa giỏ hàng
+            await Cart.deleteMany({ userId });
+
             res.status(201).json({
                 success: true,
-                message: 'Order created successfully',
+                message: 'Đặt hàng thành công',
                 data: { order }
             });
         } catch (error) {
+            console.error('Lỗi trong quá trình tạo đơn hàng:', error);
             next(error);
         }
     }
