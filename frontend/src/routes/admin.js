@@ -37,10 +37,7 @@ router.delete('/product/delete/:id',productController.delete);
 // Category routes
 router.get('/category',categoryController.categoryList);
 router.get('/category/add',categoryController.addCategory);
-router.post('/category/add',categoryController.addedCategory);
 router.get('/category/edit/:id', categoryController.editCategory);
-router.put('/category/edit/:id',categoryController.updateCategory);
-router.delete('/category/delete/:id',categoryController.delete);
 
 // User routes
 router.get('/users',userController.showUsers);

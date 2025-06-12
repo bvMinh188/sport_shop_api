@@ -28,79 +28,191 @@
                         {{/if}}
                     </div>
                 </div>
+                <div class="alert-container" style="display: none;">
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <span class="message"></span>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
                 <div class="card-body">
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
-        <thead>
-            <tr>
+                            <thead>
+                                <tr>
                                     <th style="width: 5%">STT</th>
-                                    <th style="width: 15%">Tên khách hàng</th>
+                                    <th style="width: 15%">Tên Người nhận</th>
                                     <th style="width: 20%">Địa chỉ</th>
                                     <th style="width: 10%">Số điện thoại</th>
                                     <th style="width: 10%">Giá</th>
                                     <th style="width: 15%">Thời gian</th>
                                     <th style="width: 12%">Trạng thái</th>
                                     <th style="width: 13%">Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-                                {{#each orders}}
-                <tr>
-                                    <td class="text-center">{{sum @index 1}}</td>
-                                    <td>{{this.customerName}}</td>
-                                    <td class="address-cell" title="{{this.address}}">{{this.address}}</td>
-                                    <td class="text-center">{{this.phone}}</td>
-                                    <td class="text-end">{{this.price}}</td>
-                                    <td class="text-center">{{formatDate this.createdAt}}</td>
-                                    <td class="text-center">
-                                        <span class="badge rounded-pill {{#if (eq this.status 'chờ xác nhận')}}bg-warning{{/if}}
-                                            {{#if (eq this.status 'đang giao')}}bg-primary{{/if}}
-                                            {{#if (eq this.status 'đã giao')}}bg-success{{/if}}
-                                            {{#if (eq this.status 'đã hủy')}}bg-danger{{/if}}">
-                                            {{this.status}}
-                                        </span>
-                                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
-                                data-bs-target="#detail-order-modal" 
-                                data-order='{{{json this}}}'>
-                            Xem
-                            </button>
-
-                        {{#if (eq this.status "chờ xác nhận")}}
-                                <button class="btn btn-success btn-sm btn-confirm" data-id="{{this._id}}">
-                                    Xác nhận
-                                </button>
-                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" 
-                                    data-id="{{this._id}}" data-bs-target="#delete-order-modal">
-                                    Hủy
-                                </button>
-                        {{/if}}
-
-                        {{#if (eq this.status "đang giao")}}
-                                <button class="btn btn-success btn-sm btn-complete" data-id="{{this._id}}">
-                                    Hoàn thành
-                                </button>
-                        {{/if}}
-                        </div>
-                    </td>
-                </tr>
-            {{/each}}
-        </tbody>
-    </table>
-</div>
-
-                    {{#unless orders.length}}
-                    <div class="alert alert-info text-center mt-3">
-                        <i class="fas fa-info-circle me-2"></i>Không tìm thấy đơn hàng nào.
+                                </tr>
+                            </thead>
+                            <tbody id="orders-table-body">
+                                <!-- Dữ liệu sẽ được thêm vào đây bằng JavaScript -->
+                            </tbody>
+                        </table>
                     </div>
-                    {{/unless}}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Lấy danh sách đơn hàng từ API
+    async function fetchOrders() {
+        try {
+            // Lấy token từ cookie
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+            
+            const response = await fetch('http://localhost:3000/api/orders/allorders', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include' // Include cookies in the request
+            });
+            const data = await response.json();
+
+            if (data.success && data.data.orders) {
+                const orders = data.data.orders;
+                const tbody = $('#orders-table-body');
+                tbody.empty();
+
+                orders.forEach((order, index) => {
+                    const row = $(`
+                        <tr>
+                            <td class="text-center">${index + 1}</td>
+                            <td>${order.name}</td>
+                            <td class="address-cell" title="${order.address}">${order.address}</td>
+                            <td class="text-center">${order.phone}</td>
+                            <td class="text-end">${order.price}</td>
+                            <td class="text-center">${order.createdAt}</td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill" style="background-color: ${
+                                    order.status === 'chờ xác nhận' ? '#ffc107' :
+                                    order.status === 'đang giao hàng' ? '#0d6efd' :
+                                    order.status === 'đã giao hàng' ? '#198754' :
+                                    order.status === 'đã hủy' ? '#dc3545' :
+                                    '#6c757d'
+                                }">
+                                    ${order.status}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
+                                        data-bs-target="#detail-order-modal" 
+                                        data-order='{{{json order}}}'>
+                                        Xem
+                                    </button>
+
+                                    ${
+                                        order.status === 'chờ xác nhận' ? `
+                                            <button class="btn btn-success btn-sm btn-confirm" data-id="${order._id}">
+                                                Xác nhận
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                                data-id="${order._id}" data-bs-target="#delete-order-modal">
+                                                Hủy
+                                            </button>
+                                        ` : ''
+                                    }
+
+                                    ${
+                                        order.status === 'đang giao hàng' ? `
+                                            <button class="btn btn-success btn-sm btn-complete" data-id="${order._id}">
+                                                Hoàn thành
+                                            </button>
+                                        ` : ''
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                    tbody.append(row);
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+            alert('Có lỗi xảy ra khi lấy danh sách đơn hàng');
+        }
+    }
+
+    // Gọi API khi trang load
+    fetchOrders();
+
+    // Xử lý khi click nút xóa
+    $(document).on('click', '.delete-order', function() {
+        const orderId = $(this).data('id');
+        
+        if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này không?')) {
+            $.ajax({
+                url: `/admin/order/${orderId}`,
+                type: 'DELETE'
+            })
+            .done(function(response) {
+                if (response.success) {
+                    // Tải lại danh sách đơn hàng
+                    fetchOrders();
+                } else {
+                    alert(response.message || 'Có lỗi xảy ra khi xóa đơn hàng');
+                }
+            })
+            .fail(function() {
+                alert('Có lỗi xảy ra khi xóa đơn hàng');
+            });
+        }
+    });
+
+    
+
+    // Xử lý nút hủy đơn hàng
+    $('#delete-order-modal').on('show.bs.modal', function(event) {
+        const button = $(event.relatedTarget);
+        const orderId = button.data('id');
+        const form = document.forms['delete-order-form'];
+        
+        $('#btn-delete-order').off('click').on('click', function() {
+            form.action = '/admin/order/' + orderId + '?_method=DELETE';
+            form.submit();
+        });
+    });
+});
+</script>
+
+<style>
+    /* Custom alert styles */
+    .alert-container .alert {
+        color: white;
+        padding: 1rem;
+        border-radius: 0.5rem;
+    }
+
+    .alert-container .alert-success {
+        background-color: #28a745;
+        border-color: #28a745;
+    }
+
+    .alert-container .alert-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .alert-container .btn-close {
+        color: white;
+        opacity: 0.5;
+    }
+
+    .alert-container .btn-close:hover {
+        opacity: 0.75;
+    }
+</style>
 
 <!-- Modal Chi tiết đơn hàng -->
 <div id="detail-order-modal" class="modal fade" tabindex="-1">
@@ -208,9 +320,9 @@
 
 .address-cell {
     max-width: 200px;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 .badge {
@@ -232,69 +344,222 @@
 </style>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Xử lý modal xem chi tiết đơn hàng
-    $('#detail-order-modal').on('show.bs.modal', function (event) {
+$(document).ready(function() {
+    // Lấy danh sách đơn hàng từ API
+    async function fetchOrders() {
         try {
-        const button = $(event.relatedTarget);
-            const orderData = button.data('order');
-
-            // Hiển thị thông tin đơn hàng
-            $('#customer-name').text(orderData.customerName || 'N/A');
-            $('#customer-phone').text(orderData.phone || 'N/A');
-            $('#customer-address').text(orderData.address || 'N/A');
-            $('#order-total').text(orderData.price );
-
-            // Hiển thị danh sách sản phẩm
-            const orderProductsContainer = document.getElementById('order-products');
-            orderProductsContainer.innerHTML = '';
+            // Lấy token từ cookie
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
             
-            if (Array.isArray(orderData.products)) {
-                orderData.products.forEach((product, index) => {
-                    const row = `
+            const response = await fetch('http://localhost:3000/api/orders/allorders', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include' // Include cookies in the request
+            });
+            const data = await response.json();
+
+            if (data.success && data.data.orders) {
+                const orders = data.data.orders;
+                const tbody = $('#orders-table-body');
+                tbody.empty();
+
+                orders.forEach((order, index) => {
+                    const row = $(`
                         <tr>
-                            <td>${index + 1}</td>
-                            <td>${product.name || 'N/A'}</td>
-                            <td>${product.size || 'N/A'}</td>
-                            <td>${product.quantity || '0'}</td>
-                        </tr>`;
-                    orderProductsContainer.insertAdjacentHTML('beforeend', row);
+                            <td class="text-center">${index + 1}</td>
+                            <td>${order.name}</td>
+                            <td class="address-cell" title="${order.address}">${order.address}</td>
+                            <td class="text-center">${order.phone}</td>
+                            <td class="text-end">${order.price}</td>
+                            <td class="text-center">${order.createdAt}</td>
+                            <td class="text-center">
+                                <span class="badge rounded-pill" style="background-color: ${
+                                    order.status === 'chờ xác nhận' ? '#ffc107' :
+                                    order.status === 'đang giao hàng' ? '#0d6efd' :
+                                    order.status === 'đã giao hàng' ? '#198754' :
+                                    order.status === 'đã hủy' ? '#dc3545' :
+                                    '#6c757d'
+                                }">
+                                    ${order.status}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
+                                        data-bs-target="#detail-order-modal" 
+                                        data-order='{{{json order}}}'>
+                                        Xem
+                                    </button>
+
+                                    ${
+                                        order.status === 'chờ xác nhận' ? `
+                                            <button class="btn btn-success btn-sm btn-confirm" data-id="${order._id}">
+                                                Xác nhận
+                                            </button>
+                                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" 
+                                                data-id="${order._id}" data-bs-target="#delete-order-modal">
+                                                Hủy
+                                            </button>
+                                        ` : ''
+                                    }
+
+                                    ${
+                                        order.status === 'đang giao hàng' ? `
+                                            <button class="btn btn-success btn-sm btn-complete" data-id="${order._id}">
+                                                Hoàn thành
+                                            </button>
+                                        ` : ''
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    `);
+                    tbody.append(row);
                 });
-            } else {
-                orderProductsContainer.innerHTML = '<tr><td colspan="4" class="text-center">Không có sản phẩm nào</td></tr>';
             }
         } catch (error) {
-            alert('Có lỗi xảy ra khi hiển thị chi tiết đơn hàng');
+            console.error('Error fetching orders:', error);
+            alert('Có lỗi xảy ra khi lấy danh sách đơn hàng');
+        }
+    }
+
+    // Gọi API khi trang load
+    fetchOrders();
+
+    // Xử lý nút xác nhận đơn hàng
+    $(document).on('click', '.btn-confirm', async function(event) {
+        event.preventDefault();
+        const orderId = $(this).data('id');
+        
+        try {
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+            
+            if (!token) {
+                showError('Không tìm thấy token');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/api/orders/${orderId}/confirm`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showSuccess('Đơn hàng đã được xác nhận thành công');
+                // Tải lại danh sách đơn hàng
+                fetchOrders();
+            } else {
+                showError(result.message || 'Có lỗi xảy ra khi xác nhận đơn hàng');
+            }
+        } catch (error) {
+            showError('Có lỗi xảy ra khi xác nhận đơn hàng: ' + error.message);
         }
     });
 
-    // Xử lý nút xác nhận đơn hàng
-    $('.btn-confirm').click(function(event) {
+    // Xử lý nút hoàn thành đơn hàng
+    $(document).on('click', '.btn-complete', async function(event) {
         event.preventDefault();
         const orderId = $(this).data('id');
-        const form = document.forms['confirm-order-form'];
-        form.action = '/admin/order/' + orderId + '/confirm?_method=PATCH';
-        form.submit();
+        
+        try {
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+            
+            if (!token) {
+                showError('Không tìm thấy token');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/api/orders/${orderId}/complete`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showSuccess('Đơn hàng đã được hoàn thành thành công');
+                // Tải lại danh sách đơn hàng
+                fetchOrders();
+            } else {
+                showError(result.message || 'Có lỗi xảy ra khi hoàn thành đơn hàng');
+            }
+        } catch (error) {
+            showError('Có lỗi xảy ra khi hoàn thành đơn hàng: ' + error.message);
+        }
     });
 
-    // Xử lý nút hoàn thành đơn hàng
-    $('.btn-complete').click(function(event) {
-        event.preventDefault();
-        const orderId = $(this).data('id');
-        const form = document.forms['complete-order-form'];
-        form.action = '/admin/order/' + orderId + '/complete?_method=PATCH';
-        form.submit();
-    });
+    // Hàm hiển thị thông báo thành công
+    function showSuccess(message) {
+        const alertContainer = $('.alert-container');
+        const alert = alertContainer.find('.alert');
+        alert.removeClass('alert-danger').addClass('alert-success');
+        alert.find('.message').text(message);
+        alertContainer.show();
+        
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+            alertContainer.hide();
+        }, 3000);
+    }
+
+    // Hàm hiển thị thông báo lỗi
+    function showError(message) {
+        const alertContainer = $('.alert-container');
+        const alert = alertContainer.find('.alert');
+        alert.removeClass('alert-success').addClass('alert-danger');
+        alert.find('.message').text(message);
+        alertContainer.show();
+        
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+            alertContainer.hide();
+        }, 3000);
+    }
 
     // Xử lý nút hủy đơn hàng
     $('#delete-order-modal').on('show.bs.modal', function(event) {
         const button = $(event.relatedTarget);
         const orderId = button.data('id');
-        const form = document.forms['delete-order-form'];
         
-        $('#btn-delete-order').off('click').on('click', function() {
-            form.action = '/admin/order/' + orderId + '?_method=DELETE';
-            form.submit();
+        $('#btn-delete-order').off('click').on('click', async function() {
+            try {
+                const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+                
+                if (!token) {
+                    alert('Không tìm thấy token');
+                    return;
+                }
+
+                const response = await fetch(`http://localhost:3000/api/orders/${orderId}/cancel`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    },
+                    credentials: 'include'
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    alert('Đơn hàng đã được hủy thành công');
+                    // Tải lại danh sách đơn hàng
+                    fetchOrders();
+                } else {
+                    alert(result.message || 'Có lỗi xảy ra khi hủy đơn hàng');
+                }
+            } catch (error) {
+                alert('Có lỗi xảy ra khi hủy đơn hàng: ' + error.message);
+            }
+        });
     });
 });
-});</script>
+</script>

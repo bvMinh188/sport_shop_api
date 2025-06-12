@@ -146,54 +146,7 @@ class ProductController {
     }
 
     async productList(req, res, next) {
-        try {
-            let page = parseInt(req.query.page) || 1;
-            let limit = 10;
-            let skip = (page - 1) * limit;
-        
-            let filter = {};
-            if (req.query.category) {
-                filter.category = req.query.category;
-            }
-        
-            let sort = {};
-            if (req.query._sort) {
-                sort.price = parseInt(req.query._sort);
-            } else {
-                sort.createdAt = -1;
-            }
-
-            const [products, totalProducts, categories] = await Promise.all([
-                productRepo.findWithPagination(filter, sort, skip, limit),
-                productRepo.count(filter),
-                Category.find({}).distinct('name')
-            ]);
-
-            const productsWithTotalQuantity = products.map(product => {
-                const totalQuantity = product.sizes.reduce((sum, size) => sum + size.quantity, 0);
-                return {
-                    ...product,
-                    totalQuantity
-                };
-            });
-
-            const totalPages = Math.ceil(totalProducts / limit);
-    
-            res.render('admin/product', {
-                categories: categories,
-                products: productsWithTotalQuantity,
-                currentPage: page,
-                totalPages: totalPages,
-                selectedCategory: req.query.category || '',
-                _sort: req.query._sort || '',
-                totalProducts: totalProducts,
-                startIndex: skip + 1,
-                endIndex: Math.min(skip + limit, totalProducts)
-            });
-        } catch (err) {
-            console.error('Error in productList:', err);
-            next(err);
-        }
+            res.render('admin/product');
     }
 
     async addProduct(req, res, next) {

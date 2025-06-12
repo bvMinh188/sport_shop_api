@@ -1,3 +1,6 @@
+<!-- Add jQuery library -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 <div class="container-fluid">
     <div class="row">
         <!-- Main content -->
@@ -8,6 +11,8 @@
 
             <div class="card">
                 <div class="card-body">
+                    <!-- Alert container -->
+                    <div id="alert-container" class="mb-3"></div>
                     {{#if error}}
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {{error}}
@@ -15,20 +20,87 @@
                     </div>
                     {{/if}}
                     
-                    <form method="POST" action="/admin/category/add">
+                    <form id="categoryForm">
                         <div class="mb-3">
                             <label for="name" class="form-label">Tên danh mục <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{values.name}}" required>
+                            <input type="text" class="form-control" id="name" name="name" required>
                         </div>
                         <div class="mb-3">
                             <label for="description" class="form-label">Mô tả</label>
-                            <textarea class="form-control" id="description" name="description" rows="3">{{values.description}}</textarea>
+                            <textarea class="form-control" id="description" name="description" rows="3"></textarea>
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <a href="/admin/category" class="btn btn-secondary">Hủy</a>
                             <button type="submit" class="btn btn-primary">Thêm mới</button>
                         </div>
                     </form>
+
+                    <script>
+                    $(document).ready(function() {
+                        // Clear any existing alerts
+                        function clearAlerts() {
+                            $('#alert-container').empty();
+                        }
+
+                        // Show alert message
+                        function showAlert(message, type = 'danger') {
+                            const alertType = type === 'success' ? 'alert-success' : 'alert-danger';
+                            const alertHtml = `
+                                <div class="alert ${alertType} alert-dismissible fade show" role="alert">
+                                    ${message}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            `;
+                            $('#alert-container').html(alertHtml);
+                        }
+
+                        // Prevent form submission
+                        $('#categoryForm').on('submit', function(e) {
+                            e.preventDefault();
+                            clearAlerts();
+                        });
+
+                        // Handle form submission via API
+                        $('#categoryForm button[type="submit"]').on('click', async function() {
+                            // Get form data
+                            const formData = {
+                                name: $('#name').val(),
+                                description: $('#description').val()
+                            };
+                            // Get token from cookie
+                            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+
+                            try {
+                                const response = await fetch('http://localhost:3000/api/categories', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    },
+                                    credentials: 'include',
+                                    body: JSON.stringify(formData)
+                                });
+
+                                const data = await response.json();
+
+                                if (response.ok) {
+                                    // Show success message
+                                    showAlert('Thêm danh mục thành công!', 'success');
+                                    
+                                    // Redirect after 2 seconds
+                                    setTimeout(() => {
+                                        window.location.href = '/admin/category';
+                                    }, 2000);
+                                } else {
+                                    throw new Error(data.message || 'Có lỗi xảy ra');
+                                }
+                            } catch (error) {
+                                console.error('Error:', error);
+                                showAlert(error.message || 'Có lỗi xảy ra');
+                            }
+                        });
+                    });
+                    </script>
                 </div>
             </div>
         </main>

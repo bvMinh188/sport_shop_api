@@ -14,7 +14,7 @@ const SECRET_CODE = process.env.SECRET_CODE || 'Minh';
 const STATUS_MAP = {
     'chờ xác nhận': 'pending',
     'đang giao hàng': 'shipping',
-    'đã giao': 'delivered',
+    'đã giao hàng': 'delivered',
     'đã hủy': 'cancelled'
 };
 
@@ -157,40 +157,7 @@ class OrderController {
 
     //[GET] /admin/transaction
     async transaction(req, res, next) {
-        try {
-            const page = parseInt(req.query.page) || 1;
-            const limit = 10; // số đơn hàng mỗi trang
-            const skip = (page - 1) * limit;
-
-            // Đếm tổng số đơn hàng
-            const totalOrders = await Order.countDocuments({});
-            const totalPages = Math.ceil(totalOrders / limit);
-
-            const orders = await Order.find({})
-                .populate('userId', 'username email phone')
-                .sort({ createdAt: -1 })
-                .skip(skip)
-                .limit(limit);
-
-            const formattedOrders = orders.map((order, index) => ({
-                ...order.toObject(),
-                stt: skip + index + 1, // Cập nhật STT dựa trên trang hiện tại
-                customerName: order.userId ? order.userId.username : 'N/A',
-                phone: order.userId ? order.userId.phone : 'N/A',
-                address: order.address || 'N/A',
-                price: order.price ? order.price.toLocaleString('vi-VN') : '0',
-                createdAt: order.createdAt ? new Date(order.createdAt).toLocaleString('vi-VN') : 'N/A'
-            }));
-
-            res.render('admin/transaction', {
-                orders: formattedOrders,
-                currentPage: page,
-                totalPages: totalPages
-            });
-        } catch (err) {
-            console.error('Error in transaction:', err);
-            next(err);
-        }
+        res.render('admin/transaction');
     }
 
     //[GET] /admin/transaction/:id/detail

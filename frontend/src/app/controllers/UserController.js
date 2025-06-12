@@ -142,16 +142,9 @@ class UserController {
         }
     }
 
-    // [GET] /admin/users
-    async showUsers(req, res, next) {
-        try {
-            const users = await User.find();
-            res.render('admin/userInfo', { 
-                user: mutipleMongooseToObject(users)
-            });
-        } catch (err) {
-            next(err);
-        }
+    // [GET] /users
+    showUsers(req, res, next) {
+        res.render('admin/userInfo');
     }
 
     // [GET] /admin/users/edit/:id

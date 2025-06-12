@@ -6,33 +6,27 @@
                     <h3 class="card-title">Danh Sách Sản Phẩm</h3>
                     <div class="card-tools">
                         <a href="/admin/product/add" class="btn btn-success">Thêm mới</a>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <form id="filterForm" class="mb-4" method="GET">
-                        <div class="row align-items-end">
-                            <div class="col-md-4">
-                                <label for="category" class="form-label">Danh mục</label>
-                                <select class="form-select" id="category" name="category">
-                                    <option value="">Tất cả danh mục</option>
-                                    {{#each categories}}
-                                    <option value="{{this}}" {{#if (eq ../selectedCategory this)}}selected{{/if}}>{{this}}</option>
-                                    {{/each}}
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label for="sort" class="form-label">Sắp xếp theo giá</label>
-                                <select class="form-select" id="sort" name="_sort">
-                                    <option value="">Mặc định</option>
-                                    <option value="1" {{#if (eq _sort "1")}}selected{{/if}}>Giá tăng dần</option>
-                                    <option value="-1" {{#if (eq _sort "-1")}}selected{{/if}}>Giá giảm dần</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="d-flex gap-2">
-                                    <button type="submit" class="btn btn-primary">Lọc</button>
-                                    <a href="/admin/product" class="btn btn-secondary">Đặt lại</a>
-                                </div>
+                        <div class="d-flex gap-2 align-items-center">
+                            <form id="filterForm" class="mb-4" method="GET">
+                                <div class="row align-items-end">
+                                    <div class="col-md-4">
+                                        <label for="category" class="form-label">Danh mục</label>
+                                        <select class="form-select" id="category" name="category">
+                                            <option value="">Tất cả danh mục</option>
+                                            {{#each categories}}
+                                            <option value="{{this}}" {{#if (eq ../selectedCategory this)}}selected{{/if}}>{{this}}</option>
+                                            {{/each}}
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="button" id="filterButton" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                            Sắp xếp theo
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a href="#" class="dropdown-item price-filter" data-sort="asc">Giá tăng dần</a></li>
+                                            <li><a href="#" class="dropdown-item price-filter" data-sort="desc">Giá giảm dần</a></li>
+                                        </ul>
+                                    </div>
                             </div>
                         </div>
                         <input type="hidden" name="page" value="1">
@@ -48,43 +42,17 @@
                                     <th style="width: 25%">Mô tả</th>
                                     <th style="width: 10%">Danh mục</th>
                                     <th style="width: 15%">Giá</th>
-                                    <th style="width: 5%">SL</th>
                                     <th style="width: 10%">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {{#each products}}
-                                <tr>
-                                    <td class="text-center">{{sum @index 1}}</td>
-                                    <td>{{this.name}}</td>
-                                    <td class="text-center">
-                                        <img src="{{this.image}}" alt="{{this.name}}" class="product-img">
-                                    </td>
-                                    <td class="description-cell" title="{{this.description}}">{{this.description}}</td>
-                                    <td class="text-center">{{this.category}}</td>
-                                    <td class="text-end">{{formatPrince this.price}}</td>
-                                    <td class="text-center">{{this.totalQuantity}}</td>
-                                    <td>
-                                        <div class="action-buttons">
-                                            <a href="/admin/product/edit/{{this._id}}" class="btn btn-primary btn-sm">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button class="btn btn-danger btn-sm delete-product" data-id="{{this._id}}" data-name="{{this.name}}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {{/each}}
+                            <tbody id="product-list">
                             </tbody>
                         </table>
                     </div>
 
-                    {{#unless products.length}}
-                    <div class="alert alert-info text-center mt-3">
-                        Không tìm thấy sản phẩm nào.
+                    <div class="alert alert-info text-center mt-3" id="no-products" style="display: none;">
+                        Không có sản phẩm nào
                     </div>
-                    {{/unless}}
                 </div>
                 <div class="card-footer">
                     <nav aria-label="Page navigation">
@@ -136,7 +104,7 @@
 
 <style>
 .description-cell {
-    max-width: 250px;
+    max-width: 200px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -211,102 +179,202 @@
 </style>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Thêm tooltip cho các ô mô tả
-    const descriptions = document.querySelectorAll('.description-cell');
-    descriptions.forEach(cell => {
-        $(cell).tooltip({
-            placement: 'top',
-            trigger: 'hover'
-        });
-    });
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
 
-    let productIdToDelete = null;
+const apiBase = 'http://localhost:3000/api';
+let currentPage = 1;
+let selectedCategory = '';
+let sort = '';
+let totalPages = 1;
+let categories = [];
 
-    // Xử lý khi click nút xóa
-    document.querySelectorAll('.delete-product').forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.dataset.id;
-            const productName = this.dataset.name;
-            productIdToDelete = productId;
-            document.getElementById('productName').textContent = productName;
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
-        });
-    });
+function fetchCategories() {
+    const token = getCookie('token');
+    return $.ajax({
+        url: `${apiBase}/categories`,
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+    }).then(res => res.data.categories);
+}
 
-    // Xử lý khi xác nhận xóa
-    document.getElementById('confirmDelete').addEventListener('click', function() {
-        if (productIdToDelete) {
-            fetch(`/admin/product/delete/${productIdToDelete}`, {
-                method: 'DELETE',
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Nếu xóa thành công, reload trang
-                    window.location.reload();
-                } else {
-                    // Nếu có lỗi, hiển thị thông báo
-                    showAlert('danger', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('danger', 'Có lỗi xảy ra khi xóa sản phẩm');
-            })
-            .finally(() => {
-                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-                deleteModal.hide();
-            });
-        }
-    });
-
-    // Hàm hiển thị thông báo
-    function showAlert(type, message) {
-        const alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-        
-        const cardBody = document.querySelector('.card-body');
-        cardBody.insertAdjacentHTML('afterbegin', alertHtml);
-
-        // Tự động ẩn alert sau 5 giây
-        setTimeout(() => {
-            const alert = document.querySelector('.alert');
-            if (alert) {
-                alert.remove();
-            }
-        }, 5000);
+function fetchProducts(page = 1, category = '', sort = '') {
+    const token = getCookie('token');
+    let url = `${apiBase}/products`;
+    let params = { page, limit: 10 };
+    if (category) {
+        url = `${apiBase}/products/category/${encodeURIComponent(category)}`;
     }
+    if (sort) params.sort = sort;
 
-    // Xử lý form lọc
-    const filterForm = document.getElementById('filterForm');
-    const categorySelect = document.getElementById('category');
-    const sortSelect = document.getElementById('sort');
+    return $.ajax({
+        url: url,
+        data: params,
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+    }).then(data => {
+        const tbody = document.querySelector('tbody');
+        tbody.innerHTML = '';
 
-    // Cập nhật URL khi thay đổi lọc
-    function updateURL() {
-        const params = new URLSearchParams();
-        
-        if (categorySelect.value) {
-            params.append('category', categorySelect.value);
+        data.data.products.forEach((product, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td class="text-center">${index + 1}</td>
+                <td>${product.name}</td>
+                <td>
+                    <img src="${product.image}" alt="${product.name}" class="product-img">
+                </td>
+                <td class="description-cell" title="${product.description}">${product.description}</td>
+                <td class="text-center">${product.category}</td>
+                <td class="text-end">${product.price.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' })}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="/admin/product/edit/${product._id}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <button class="btn btn-danger btn-sm delete-product" data-id="${product._id}" data-name="${product.name}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(row);
+        });
+
+        // Cập nhật phân trang
+        const pagination = document.querySelector('.pagination');
+        if (pagination) {
+            pagination.innerHTML = '';
+            
+            // Nút trước
+            if (page > 1) {
+                const prevBtn = document.createElement('li');
+                prevBtn.className = 'page-item';
+                prevBtn.innerHTML = `
+                    <a class="page-link" href="?page=${page - 1}${category ? `&category=${category}` : ''}${sort ? `&_sort=${sort}` : ''}">
+                        Previous
+                    </a>
+                `;
+                pagination.appendChild(prevBtn);
+            }
+
+            // Các trang
+            for (let i = 1; i <= data.data.pagination.totalPages; i++) {
+                const pageBtn = document.createElement('li');
+                pageBtn.className = `page-item ${i === page ? 'active' : ''}`;
+                pageBtn.innerHTML = `
+                    <a class="page-link" href="?page=${i}${category ? `&category=${category}` : ''}${sort ? `&_sort=${sort}` : ''}">
+                        ${i}
+                    </a>
+                `;
+                pagination.appendChild(pageBtn);
+            }
+
+            // Nút sau
+            if (page < data.data.pagination.totalPages) {
+                const nextBtn = document.createElement('li');
+                nextBtn.className = 'page-item';
+                nextBtn.innerHTML = `
+                    <a class="page-link" href="?page=${page + 1}${category ? `&category=${category}` : ''}${sort ? `&_sort=${sort}` : ''}">
+                        Next
+                    </a>
+                `;
+                pagination.appendChild(nextBtn);
+            }
         }
-        
-        if (sortSelect.value) {
-            params.append('_sort', sortSelect.value);
-        }
-        
-        // Luôn reset về trang 1 khi thay đổi bộ lọc
-        params.append('page', '1');
-        
-        window.location.href = `${window.location.pathname}?${params.toString()}`;
+    });
+}
+
+// Gọi API khi trang load
+$(document).ready(function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    currentPage = parseInt(urlParams.get('page')) || 1;
+    selectedCategory = urlParams.get('category') || '';
+    sort = urlParams.get('_sort') || '';
+
+    // Lấy danh mục
+    fetchCategories().then(data => {
+        categories = data;
+        // Cập nhật select category
+        const categorySelect = $('#category');
+        categorySelect.empty();
+        categorySelect.append('<option value="">Tất cả danh mục</option>');
+        categories.forEach(category => {
+            categorySelect.append(
+                `<option value="${category.name}" ${selectedCategory === category.name ? 'selected' : ''}>${category.name}</option>`
+            );
+        });
+    });
+
+    // Lấy sản phẩm
+    fetchProducts(currentPage, selectedCategory, sort);
+});
+
+// Xử lý khi thay đổi danh mục
+$('#category').on('change', function() {
+    selectedCategory = $(this).val();
+    currentPage = 1; // Reset về trang 1 khi thay đổi danh mục
+    fetchProducts(currentPage, selectedCategory, sort);
+});
+
+// Xử lý khi thay đổi sắp xếp
+$(document).on('click', '.price-filter', function(e) {
+    e.preventDefault();
+    const sortType = $(this).data('sort');
+    if (sortType === 'asc') {
+        sort = 'price';
+    } else if (sortType === 'desc') {
+        sort = '-price';
+    } else {
+        sort = '';
+    }
+    currentPage = 1;
+    fetchProducts(currentPage, selectedCategory, sort);
+    $('#filterButton').text($(this).text());
+});
+
+// Xử lý khi click nút xóa
+$(document).on('click', '.delete-product', function() {
+    const productId = $(this).data('id');
+    const productName = $(this).data('name');
+    
+    if (confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${productName}" không?`)) {
+        const token = getCookie('token');
+        $.ajax({
+            url: `${apiBase}/products/${productId}`,
+            type: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
+        })
+        .done(function(response) {
+            if (response.success) {
+                // Tải lại dữ liệu sau khi xóa
+                fetchProducts(currentPage, selectedCategory, sort);
+            } else {
+                alert(response.message || 'Có lỗi xảy ra khi xóa sản phẩm');
+            }
+        })
+        .fail(function() {
+            alert('Có lỗi xảy ra khi xóa sản phẩm');
+        });
     }
 });
-</script> 
+
+// Thêm tooltip cho các ô mô tả
+$(document).ready(function() {
+    $('[data-toggle="tooltip"]').tooltip({
+        placement: 'top'
+    });
+});
+</script>

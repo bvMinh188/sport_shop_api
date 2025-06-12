@@ -167,12 +167,10 @@ class OrderController {
     // [GET] /api/orders/:id
     async getOrderById(req, res, next) {
         try {
-            const userId = req.user.id;
             const orderId = req.params.id;
 
             const order = await Order.findOne({
-                _id: orderId,
-                userId
+                _id: orderId
             }).lean();
 
             if (!order) {
@@ -236,12 +234,10 @@ class OrderController {
     // [PUT] /api/orders/:id/cancel
     async cancelOrder(req, res, next) {
         try {
-            const userId = req.user._id;
             const orderId = req.params.id;
 
             const order = await Order.findOne({
-                _id: orderId,
-                userId
+                _id: orderId
             });
 
 
@@ -277,6 +273,72 @@ class OrderController {
             });
         } catch (error) {
             next(error);
+        }
+    }
+
+    // Get /api/totalorders
+    async totalOrders(req, res, next) {
+        try {
+            const totalOrders = await Order.countDocuments();
+            res.json({
+                success: true,
+                data: { totalOrders }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // Get /api/allorders
+    async getAllOrders(req, res, next) {
+        try {
+            const orders = await Order.find({}).lean();
+            res.json({
+                success: true,
+                data: { orders }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // [PUT] /api/orders/:id/confirm
+    async confirmOrder(req, res, next) {
+        try {
+            const orderId = req.params.id;
+
+            const order = await Order.findOneAndUpdate({
+                _id: orderId
+            }, {
+                status: 'đang giao hàng'
+            });
+            res.json({
+                success: true,
+                message: 'Order confirmed successfully',
+                data: { order }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+
+    // [PUT] /api/orders/:id/complete
+    async completeOrder(req, res, next) {
+        try {
+            const orderId = req.params.id;
+
+            const order = await Order.findOneAndUpdate({
+                _id: orderId
+            }, {
+                status: 'đã giao hàng'
+            });
+            res.json({
+                success: true,
+                message: 'Order completed successfully',
+                data: { order }
+            });
+        } catch (err) {
+            next(err);
         }
     }
 }

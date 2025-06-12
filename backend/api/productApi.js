@@ -26,4 +26,6 @@ router.put('/products/:id', productController.updateProduct);
 // Delete product
 router.delete('/products/:id', productController.deleteProduct);
 
+router.get('/totalproducts',productController.totalProducts);
+
 module.exports = router; 

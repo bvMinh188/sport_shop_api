@@ -701,6 +701,95 @@ class UserController {
             next(error);
         }
     }
+
+    // Get /api/totalusers
+    async totalUsers(req, res, next) {
+        try {
+            const totalUsers = await User.countDocuments();
+            res.json({
+                success: true,
+                data: { totalUsers }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+    
+    // Get /api/allusers
+    async getAllUsers(req, res, next) {
+        try {
+            const users = await User.find({}).lean();
+            res.json({
+                success: true,
+                data: { users }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+    
+    // Put /api/users/:id
+    async setAdmin(req, res, next) {
+        try {
+            const user = await User.findByIdAndUpdate(req.params.id,{
+                role: 'admin'
+            });
+            res.json({
+                success: true,
+                data: { user }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+    
+    // Put /api/users/:id
+    async setUser(req, res, next) {
+        try {
+            const user = await User.findByIdAndUpdate(req.params.id,{
+                role: 'user'
+            });
+            res.json({
+                success: true,
+                data: { user }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+    
+    // Delete /api/users/:id
+    async deleteUser(req, res, next) {
+        try {
+            const user = await User.findById(req.params.id);
+            
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // Kiểm tra xem user có đơn hàng nào không
+            const orders = await Order.find({ user: user._id });
+            
+            if (orders.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot delete user because they have placed orders'
+                });
+            }
+
+            // Nếu không có đơn hàng, mới xóa user
+            await User.findByIdAndDelete(req.params.id);
+            res.json({
+                success: true,
+                message: 'User deleted successfully'
+            });
+        } catch (err) {
+            next(err);
+        }
+    }   
 }
 
 module.exports = new UserController(); 

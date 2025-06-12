@@ -5,7 +5,6 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const cookieParser = require('cookie-parser');
 const db = require('./config/db');
-const authMiddleware = require('./middleware/auth');
 // Load environment variables
 dotenv.config();
 

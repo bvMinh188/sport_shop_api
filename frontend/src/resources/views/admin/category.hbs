@@ -25,20 +25,14 @@
                                     <th style="width: 30%">Thao tác</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="categories-tbody">
                                 {{#each categories}}
                                 <tr>
-                                    <td class="text-center">{{sum @index 1}}</td>
+                                    <td>{{@index}}</td>
                                     <td>{{this.name}}</td>
                                     <td>
-                                        <div class="action-buttons">
-                                            <a href="/admin/category/edit/{{this._id}}" class="btn btn-primary btn-sm">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button class="btn btn-danger btn-sm delete-category" data-id="{{this._id}}" data-name="{{this.name}}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
+                                        <a href="/admin/category/edit/{{this._id}}" class="btn btn-sm btn-primary me-2">Sửa</a>
+                                        <button class="btn btn-sm btn-danger delete-category" data-id="{{this._id}}" data-name="{{this.name}}">Xóa</button>
                                     </td>
                                 </tr>
                                 {{/each}}
@@ -46,129 +40,174 @@
                         </table>
                     </div>
 
-                    {{#unless categories.length}}
-                    <div class="alert alert-info text-center mt-3">
-                        Không tìm thấy danh mục nào.
+                    <!-- Modal Xác nhận xóa -->
+                    <div class="modal fade" id="deleteCategoryModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Xác nhận xóa</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Bạn có chắc chắn muốn xóa danh mục "<span id="categoryName"></span>" không?</p>
+                                    <p class="text-danger">Lưu ý: Nếu danh mục này đang có sản phẩm, bạn không thể xóa.</p>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                                    <button type="button" class="btn btn-danger" id="confirmDelete">Xóa</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    {{/unless}}
+{{!-- 
+                    {{#unless categories}}
+                    <div class="alert alert-info text-center mt-3">
+                        Không có danh mục nào
+                    </div>
+                    {{/unless}} --}}
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal xác nhận xóa -->
-<div class="modal fade" id="deleteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Xác nhận xóa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xóa danh mục "<span id="categoryName"></span>"?</p>
-                <p class="text-danger mb-0"><small>Hành động này không thể hoàn tác.</small></p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn btn-danger" id="confirmDelete">Xóa</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<style>
-.action-buttons {
-    display: flex;
-    gap: 5px;
-    justify-content: center;
-}
-
-.btn-sm {
-    padding: 0.25rem 0.5rem;
-}
-
-.table th {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-    vertical-align: middle;
-}
-
-.table td {
-    vertical-align: middle;
-    padding: 0.5rem;
-}
-
-.text-center {
-    text-align: center;
-}
-</style>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-    let categoryIdToDelete = null;
+    // Xử lý click nút xóa
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-category')) {
+            const categoryId = e.target.dataset.id;
+            const categoryName = e.target.dataset.name;
+            
+            // Hiển thị modal
+            const modal = new bootstrap.Modal(document.getElementById('deleteCategoryModal'));
+            document.getElementById('categoryName').textContent = categoryName;
+            document.getElementById('confirmDelete').onclick = async function() {
+                try {
+                    const response = await fetch(`http://localhost:3000/api/categories/${categoryId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        },
+                        credentials: 'include'
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        // Xóa dòng khỏi table
+                        e.target.closest('tr').remove();
+                        showMessage('success', 'Đã xóa danh mục thành công');
+                        modal.hide();
+                    } else {
+                        showMessage('error', result.message || 'Không thể xóa danh mục');
+                        modal.hide();
+                    }
+                } catch (error) {
+                    console.error('Error deleting category:', error);
+                    showMessage('error', 'Có lỗi xảy ra khi xóa danh mục');
+                    modal.hide();
+                }
+            };
+            
+            modal.show();
+        }
+    });
+
+    // Lấy danh sách danh mục từ API
+    // Lấy danh sách danh mục từ API
+    const token = getCookie('token');
+    
+    // Function to show message
+    function showMessage(type, message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.card-body').insertBefore(alertDiv, document.querySelector('.table-responsive'));
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            alertDiv.classList.add('d-none');
+        }, 5000);
+    }
+
+    fetch('http://localhost:3000/api/categories', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data.categories) {
+                const tbody = document.getElementById('categories-tbody');
+                const categories = data.data.categories;
+                
+                // Xóa các hàng hiện tại
+                tbody.innerHTML = '';
+                
+                // Thêm các hàng mới
+                categories.forEach((category, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="text-center">${index + 1}</td>
+                        <td>${category.name}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="/admin/category/edit/${category._id}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-danger btn-sm delete-category" data-id="${category._id}" data-name="${category.name}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching categories:', error);
+        });
 
     // Xử lý khi click nút xóa
     document.querySelectorAll('.delete-category').forEach(button => {
         button.addEventListener('click', function() {
             const categoryId = this.dataset.id;
             const categoryName = this.dataset.name;
-            categoryIdToDelete = categoryId;
-            document.getElementById('categoryName').textContent = categoryName;
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            deleteModal.show();
+            
+            if (confirm(`Bạn có chắc chắn muốn xóa danh mục "${categoryName}" không?`)) {
+                fetch(`http://localhost:3000/api/categories/${categoryId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload(); // Tải lại trang sau khi xóa thành công
+                    } else {
+                        alert(data.message || 'Có lỗi xảy ra khi xóa danh mục');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting category:', error);
+                    alert('Có lỗi xảy ra khi xóa danh mục');
+                });
+            }
         });
     });
-
-    // Xử lý khi xác nhận xóa
-    document.getElementById('confirmDelete').addEventListener('click', function() {
-        if (categoryIdToDelete) {
-            fetch(`/admin/category/delete/${categoryIdToDelete}`, {
-                method: 'DELETE',
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Nếu xóa thành công, reload trang
-                    window.location.reload();
-                } else {
-                    // Nếu có lỗi, hiển thị thông báo
-                    showAlert('danger', data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('danger', 'Có lỗi xảy ra khi xóa danh mục');
-            })
-            .finally(() => {
-                const deleteModal = bootstrap.Modal.getInstance(document.getElementById('deleteModal'));
-                deleteModal.hide();
-            });
-        }
-    });
-
-    // Hàm hiển thị thông báo
-    function showAlert(type, message) {
-        const alertHtml = `
-            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
-                ${message}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        `;
-        
-        const cardBody = document.querySelector('.card-body');
-        cardBody.insertAdjacentHTML('afterbegin', alertHtml);
-
-        // Tự động ẩn alert sau 5 giây
-        setTimeout(() => {
-            const alert = document.querySelector('.alert');
-            if (alert) {
-                alert.remove();
-            }
-        }, 5000);
-    }
 });
 </script> 

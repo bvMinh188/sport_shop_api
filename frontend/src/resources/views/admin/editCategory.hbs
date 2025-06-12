@@ -1,13 +1,14 @@
 <div class="container-fluid">
     <div class="row">
-        <!-- Main content -->
-        <main role="main" class="col-12">
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
-                <h1>Chỉnh Sửa Danh Mục</h1>
-            </div>
-
+        <div class="col-md-12">
             <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Chỉnh Sửa Danh Mục</h3>
+                </div>
                 <div class="card-body">
+                    <div id="messageAlert" class="alert alert-info d-none" role="alert">
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
                     {{#if error}}
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         {{error}}
@@ -15,14 +16,15 @@
                     </div>
                     {{/if}}
 
-                    <form method="POST" action="/admin/category/edit/{{category._id}}?_method=PUT">
+                    <form id="categoryForm">
+                        <input type="hidden" id="categoryId" value="{{category._id}}">
                         <div class="mb-3">
                             <label for="name" class="form-label">Tên danh mục <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="name" name="name" value="{{category.name}}" required>
+                            <input type="text" class="form-control" id="name" required>
                         </div>
                         <div class="mb-3">
                             <label for="description" class="form-label">Mô tả</label>
-                            <textarea class="form-control" id="description" name="description" rows="3">{{category.description}}</textarea>
+                            <textarea class="form-control" id="description" rows="3"></textarea>
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <a href="/admin/category" class="btn btn-secondary">Hủy</a>
@@ -31,9 +33,106 @@
                     </form>
                 </div>
             </div>
-        </main>
+        </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const path = window.location.pathname;
+    // path sẽ là: "/admin/category/edit/670be3c1ccb049b6647d259a"
+
+    const segments = path.split('/'); 
+    const categoryId = segments[segments.length - 1];
+    if (!categoryId) {
+        alert('Category ID not found');
+        window.location.href = '/admin/category';
+        return;
+    }
+    const nameInput = document.getElementById('name');
+    const descriptionInput = document.getElementById('description');
+    const form = document.getElementById('categoryForm');
+
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+
+    // Function to show message
+    function showMessage(type, message) {
+        const alertDiv = document.getElementById('messageAlert');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.textContent = message;
+        alertDiv.classList.remove('d-none');
+        
+        // Auto hide after 5 seconds
+        setTimeout(() => {
+            alertDiv.classList.add('d-none');
+        }, 5000);
+    }
+
+    // Load category data
+    async function loadCategory() {
+        try {
+            const response = await fetch(`http://localhost:3000/api/categories/${categoryId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                nameInput.value = result.data.category.name;
+                descriptionInput.value = result.data.category.description;
+            } else {
+                showMessage('error', result.message || 'Category not found');
+            }
+        } catch (error) {
+            console.error('Error loading category:', error);
+            showMessage('error', 'Failed to load category data');
+        }
+    }
+
+    // Handle form submission
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const updateData = {
+            name: nameInput.value,
+            description: descriptionInput.value
+        };
+
+        try {
+            const response = await fetch(`http://localhost:3000/api/categories/${categoryId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify(updateData)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                showMessage('success', 'Đã cập nhật danh mục thành công');
+                // Redirect sau 2 giây
+                setTimeout(() => {
+                    window.location.href = '/admin/category';
+                }, 2000);
+            } else {
+                showMessage('error', result.message || 'Cập nhật danh mục thất bại');
+            }
+        } catch (error) {
+            console.error('Error updating category:', error);
+            showMessage('error', 'Có lỗi xảy ra khi cập nhật danh mục');
+        }
+    });
+
+    // Load initial category data
+    loadCategory();
+});
+</script>
 
 <style>
 .card {

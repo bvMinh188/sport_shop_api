@@ -42,7 +42,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                {{#each user}}
+                                {{#each users.data.users}}
                                 <tr>
                                     <td class="text-center">{{sum @index 1}}</td>
                                     <td>{{this.username}}</td>
@@ -58,9 +58,9 @@
                                             <a href="/admin/users/edit/{{this._id}}" class="btn btn-success btn-sm">
                                                 <i class="fas fa-edit"></i> Sửa
                                             </a>
-                                            <a href="#" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#delete-user-modal-{{this._id}}">
+                                            <button type="button" class="btn btn-danger btn-sm" onclick="openDeleteModal('{{this._id}}', '{{this.username}}')">
                                                 <i class="fas fa-trash"></i> Xóa
-                                            </a>
+                                            </button>
                                         </div>
 
                                         <!-- Modal Xác Nhận Xóa cho từng user -->
@@ -83,28 +83,98 @@
                                                     </div>
                                                     <div class="modal-footer" style="justify-content: center; gap: 10px;">
                                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="min-width: 100px;">Không</button>
-                                                        <button type="button" class="btn btn-danger btn-delete-user" 
-                                                                data-id="{{this._id}}" 
-                                                                data-name="{{this.username}}" 
-                                                                style="min-width: 100px;">
-                                                            Xác nhận
-                                                        </button>
+                                                        <button type="button" class="btn btn-danger" id="confirm-delete-{{this._id}}" style="min-width: 100px;">Có</button>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const confirmDeleteBtn = document.getElementById('confirm-delete-{{this._id}}');
+                                if (confirmDeleteBtn) {
+                                    confirmDeleteBtn.onclick = async function() {
+                                        const token = localStorage.getItem('token');
+                                        const userId = '{{this._id}}';
+                                        
+                                        try {
+                                            const response = await fetch(`http://localhost:3000/api/users/${userId}`, {
+                                                method: 'DELETE',
+                                                headers: {
+                                                    'Authorization': `Bearer ${token}`
+                                                },
+                                                credentials: 'include'
+                                            });
+                                            
+                                            const result = await response.json();
+                                            
+                                            if (result.success) {
+                                                // Hiển thị thông báo thành công
+                                                const messageContainer = document.getElementById('message-container-{{this._id}}');
+                                                messageContainer.innerHTML = `
+                                                    <div class="alert alert-success">
+                                                        ${result.message}
+                                                    </div>
+                                                `;
+                                                
+                                                // Tự động đóng modal sau 2 giây
+                                                setTimeout(() => {
+                                                    const modal = bootstrap.Modal.getInstance(document.getElementById('delete-user-modal-{{this._id}}'));
+                                                    if (modal) {
+                                                        modal.hide();
+                                                    }
+                                                }, 2000);
+                                            } else {
+                                                // Hiển thị thông báo lỗi
+                                                const messageContainer = document.getElementById('message-container-{{this._id}}');
+                                                messageContainer.innerHTML = `
+                                                    <div class="alert alert-danger">
+                                                        ${result.message}
+                                                    </div>
+                                                `;
+                                            }
+                                        } catch (error) {
+                                            console.error('Error deleting user:', error);
+                                            const messageContainer = document.getElementById('message-container-{{this._id}}');
+                                            messageContainer.innerHTML = `
+                                                <div class="alert alert-danger">
+                                                    Có lỗi xảy ra khi xóa người dùng
+                                                </div>
+                                            `;
+                                        }
+                                    };
+                                }
+                            });
+                        </script>
+                        <script>
+                            function openDeleteModal(userId, userName) {
+                                const modal = new bootstrap.Modal(document.getElementById(`delete-user-modal-${userId}`));
+                                const messageContainer = document.getElementById(`message-container-${userId}`);
+                                messageContainer.innerHTML = '';
+                                
+                                // Cập nhật tên user trong modal
+                                const confirmMessage = document.querySelector(`#delete-user-modal-${userId} .confirm-message`);
+                                if (confirmMessage) {
+                                    confirmMessage.innerHTML = `
+                                        <div class="alert alert-warning mb-0">
+                                            Bạn có chắc chắn muốn xóa người dùng <strong>${userName}</strong>?
+                                        </div>
+                                    `;
+                                }
+                                
+                                modal.show();
+                            }
+                        </script>
                                     </td>
                                 </tr>
                                 {{/each}}
                             </tbody>
                         </table>
                     </div>
-
-                    {{#unless user.length}}
-                    <div class="alert alert-info text-center mt-3">
-                        <i class="fas fa-info-circle me-2"></i>Không tìm thấy người dùng nào.
-                    </div>
-                    {{/unless}}
                 </div>
             </div>
         </div>
@@ -209,84 +279,55 @@
 }
 </style>
 
+<script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    fetchUsers();
+});
+
+async function fetchUsers() {
+    try {
+        const token = getCookie('token');
+        const response = await fetch('http://localhost:3000/api/allusers', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            },
+            credentials: 'include'
+        });
+        const data = await response.json();
+        if (data.success) {
+            // Update the table with new data
+            const tbody = document.querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            data.data.users.forEach((user, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="text-center">${index + 1}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td class="text-center">${user.role || 'user'}</td>
+                    <td>${new Date(user.createdAt).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-2">Sửa</button>
+                        <button class="btn btn-sm btn-danger">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Error fetching users:', error);
+        alert('Có lỗi khi tải danh sách người dùng');
+    }
+}
+</script>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        function showMessage(userId, message, type = 'danger') {
-            const container = document.getElementById(`message-container-${userId}`);
-            container.innerHTML = `
-                <div class="alert alert-${type} mt-3 mb-0">
-                    ${message}
-                </div>
-            `;
-        }
-
-        function clearMessage(userId) {
-            const container = document.getElementById(`message-container-${userId}`);
-            container.innerHTML = '';
-        }
-
-        // Xử lý sự kiện click nút xóa user
-        const deleteButtons = document.querySelectorAll('.btn-delete-user');
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', async function(e) {
-                e.preventDefault();
-                
-                const userId = this.getAttribute('data-id');
-                const userName = this.getAttribute('data-name');
-                const modalElement = document.getElementById(`delete-user-modal-${userId}`);
-                const modal = bootstrap.Modal.getInstance(modalElement);
-                
-                // Disable nút xác nhận khi đang xử lý
-                this.disabled = true;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang xử lý...';
-                
-                try {
-                    const response = await fetch(`/admin/users/${userId}/deleted`, {
-                        method: 'DELETE',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    const data = await response.json();
-
-                    if (response.ok && data.success) {
-                        showMessage(userId, 'Xóa người dùng thành công!', 'success');
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1000);
-                    } else {
-                        showMessage(userId, data.message || 'Có lỗi xảy ra khi xóa người dùng');
-                        // Re-enable nút xác nhận
-                        this.disabled = false;
-                        this.innerHTML = 'Xác nhận';
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    showMessage(userId, 'Có lỗi xảy ra khi xóa người dùng. Vui lòng thử lại sau.');
-                    // Re-enable nút xác nhận
-                    this.disabled = false;
-                    this.innerHTML = 'Xác nhận';
-                }
-            });
-        });
-
-        // Reset message khi modal được đóng
-        const deleteModals = document.querySelectorAll('.modal');
-        deleteModals.forEach(modalElement => {
-            modalElement.addEventListener('hidden.bs.modal', function() {
-                const userId = this.id.replace('delete-user-modal-', '');
-                clearMessage(userId);
-                
-                // Reset nút xác nhận
-                const deleteButton = this.querySelector('.btn-delete-user');
-                if (deleteButton) {
-                    deleteButton.disabled = false;
-                    deleteButton.innerHTML = 'Xác nhận';
-                }
-            });
-        });
-    });
-</script>

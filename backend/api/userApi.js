@@ -21,4 +21,10 @@ router.put('/users/addresses/:id', userController.updateAddress);
 router.delete('/users/addresses/:id', userController.deleteAddress);
 router.put('/users/set-default-address', userController.setDefaultAddress);
 
+router.get('/totalusers',userController.totalUsers);
+router.get('/allusers',userController.getAllUsers);
+router.put('/users/:id',userController.setAdmin);
+router.put('/users/:id',userController.setUser);
+router.delete('/users/:id',userController.deleteUser);
+
 module.exports = router; 

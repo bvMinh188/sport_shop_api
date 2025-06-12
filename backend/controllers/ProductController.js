@@ -315,6 +315,19 @@ class ProductController {
             next(error);
         }
     }
+
+    // Get /api/totalproducts
+    async totalProducts(req, res, next) {
+        try {
+            const totalProducts = await Product.countDocuments();
+            res.json({
+                success: true,
+                data: { totalProducts }
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
 module.exports = new ProductController();

@@ -6,7 +6,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="stats-label">Tổng số danh mục</h6>
-                            <div class="stats-value">{{totalCategories}}</div>
+                            <div class="stats-value">{{#if totalCategories}}{{totalCategories}}{{else}}<span class="loading">Loading...</span>{{/if}}</div>
                         </div>
                         <i class="fas fa-list fa-2x stats-icon"></i>
                     </div>
@@ -23,7 +23,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="stats-label">Tổng số sản phẩm</h6>
-                            <div class="stats-value">{{totalProducts}}</div>
+                            <div class="stats-value">{{#if totalProducts}}{{totalProducts}}{{else}}<span class="loading">Loading...</span>{{/if}}</div>
                         </div>
                         <i class="fas fa-box fa-2x stats-icon"></i>
                     </div>
@@ -40,12 +40,12 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="stats-label">Tổng số đơn hàng</h6>
-                            <div class="stats-value">{{totalOrders}}</div>
+                            <div class="stats-value">{{#if totalOrders}}{{totalOrders}}{{else}}<span class="loading">Loading...</span>{{/if}}</div>
                         </div>
                         <i class="fas fa-shopping-cart fa-2x stats-icon"></i>
                     </div>
                 </div>
-                <a href="/admin/transaction" class="card-footer d-flex align-items-center justify-content-between">
+                <a href="/admin/order" class="card-footer d-flex align-items-center justify-content-between">
                     <span>Xem chi tiết</span>
                     <i class="fas fa-arrow-right"></i>
                 </a>
@@ -57,7 +57,7 @@
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <h6 class="stats-label">Tổng số người dùng</h6>
-                            <div class="stats-value">{{totalUsers}}</div>
+                            <div class="stats-value">{{#if totalUsers}}{{totalUsers}}{{else}}<span class="loading">Loading...</span>{{/if}}</div>
                         </div>
                         <i class="fas fa-users fa-2x stats-icon"></i>
                     </div>
@@ -127,4 +127,77 @@
         margin-bottom: 1rem;
     }
 }
-</style> 
+</style>
+
+<script>
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const token = getCookie('token');
+
+    // Fetch total categories
+    fetch('http://localhost:3000/api/totalcategories', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data) {
+                document.querySelectorAll('.stats-value')[0].textContent = data.data.totalCategories;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+
+    // Fetch total products
+    fetch('http://localhost:3000/api/totalproducts', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data) {
+                document.querySelectorAll('.stats-value')[1].textContent = data.data.totalProducts;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+
+    // Fetch total orders
+    fetch('http://localhost:3000/api/totalorders', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data) {
+                document.querySelectorAll('.stats-value')[2].textContent = data.data.totalOrders;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+
+    // Fetch total users
+    fetch('http://localhost:3000/api/totalusers', {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        },
+        credentials: 'include'
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data) {
+                document.querySelectorAll('.stats-value')[3].textContent = data.data.totalUsers;
+            }
+        })
+        .catch(error => console.error('Error:', error));
+});
+</script> 

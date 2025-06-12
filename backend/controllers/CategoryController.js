@@ -72,7 +72,7 @@ class CategoryController {
             if (existingCategory) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Category with this name already exists'
+                    message: 'Danh mục này đã tồn tại'
                 });
             }
 
@@ -145,7 +145,17 @@ class CategoryController {
                 });
             }
 
-            await category.remove();
+            // Kiểm tra xem category có được sử dụng trong products không
+            const products = await Product.find({ category: category.name });
+            if (products.length > 0) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Danh mục này đang có sản phẩm đang bán'
+                });
+            }
+
+            // Xóa category
+            await Category.deleteOne({ _id: category._id });
 
             res.json({
                 success: true,
@@ -156,7 +166,7 @@ class CategoryController {
         }
     }
 
-    // Get products by category ID
+    // Get /api/categories/:id/products
     async getCategoryProducts(req, res, next) {
         try {
             const category = await Category.findById(req.params.id);
@@ -174,6 +184,19 @@ class CategoryController {
                 success: true,
                 category: mongooseToObject(category),
                 products: mutipleMongooseToObject(products)
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
+    
+    // Get /api/totalcategories
+    async totalCategories(req, res, next) {
+        try {
+            const totalCategories = await Category.countDocuments();
+            res.json({
+                success: true,
+                data: { totalCategories }
             });
         } catch (err) {
             next(err);
