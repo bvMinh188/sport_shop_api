@@ -13,7 +13,7 @@
                     </div>
                     {{/if}}
 
-                    <form method="POST" action="/admin/product/edit/{{product._id}}?_method=PUT">
+                    <form id="editProductForm" method="POST">
                         <div class="row">
                             <div class="col-md-8">
                                 <!-- Thông tin cơ bản -->
@@ -23,12 +23,12 @@
                                         
                                         <div class="mb-3">
                                             <label for="name" class="form-label">Tên sản phẩm <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="name" name="name" value="{{product.name}}" required>
+                                            <input type="text" class="form-control" id="name" name="name" required>
                                         </div>
 
                                         <div class="mb-3">
                                             <label for="description" class="form-label">Mô tả <span class="text-danger">*</span></label>
-                                            <textarea class="form-control" id="description" name="description" rows="3" required>{{product.description}}</textarea>
+                                            <textarea class="form-control" id="description" name="description" rows="3" required></textarea>
                                         </div>
 
                                         <div class="row">
@@ -37,9 +37,6 @@
                                                     <label for="category" class="form-label">Danh mục <span class="text-danger">*</span></label>
                                                     <select class="form-select" id="category" name="category" required>
                                                         <option value="">Chọn danh mục</option>
-                                                        {{#each categories}}
-                                                        <option value="{{this.name}}" {{#if (eq this.name ../product.category)}}selected{{/if}}>{{this.name}}</option>
-                                                        {{/each}}
                                                     </select>
                                                 </div>
                                             </div>
@@ -47,7 +44,7 @@
                                                 <div class="mb-3">
                                                     <label for="price" class="form-label">Giá <span class="text-danger">*</span></label>
                                                     <div class="input-group">
-                                                        <input type="number" class="form-control" id="price" name="price" value="{{product.price}}" min="0" required>
+                                                        <input type="number" class="form-control" id="price" name="price" min="0" required>
                                                         <span class="input-group-text">VNĐ</span>
                                                     </div>
                                                 </div>
@@ -56,10 +53,10 @@
 
                                         <div class="mb-3">
                                             <label for="image" class="form-label">Link hình ảnh <span class="text-danger">*</span></label>
-                                            <input type="text" class="form-control" id="image" name="image" value="{{product.image}}" placeholder="Nhập URL hình ảnh" required>
+                                            <input type="text" class="form-control" id="image" name="image" placeholder="Nhập URL hình ảnh" required>
                                         </div>
                                         <div id="imagePreview" class="mt-2 text-center">
-                                            <img src="{{product.image}}" alt="{{product.name}}" class="img-fluid">
+                                            <img src="" alt="" class="img-fluid">
                                         </div>
                                     </div>
                                 </div>
@@ -68,16 +65,7 @@
                                 <div class="card mb-4">
                                     <div class="card-body">
                                         <h5 class="card-title mb-3">Kích thước và số lượng</h5>
-                                        <div class="row">
-                                            {{#each product.sizes}}
-                                            <div class="col-md-2">
-                                                <div class="mb-3">
-                                                    <label for="size{{this.size}}" class="form-label">Size {{this.size}}</label>
-                                                    <input type="number" class="form-control" id="size{{this.size}}" name="sizes[{{@index}}][size]" value="{{this.size}}" readonly hidden>
-                                                    <input type="number" class="form-control" name="sizes[{{@index}}][quantity]" min="0" value="{{this.quantity}}">
-                                                </div>
-                                            </div>
-                                            {{/each}}
+                                        <div class="row" id="sizesContainer">
                                         </div>
                                     </div>
                                 </div>
@@ -140,6 +128,145 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const token = localStorage.getItem('token');
+    const path = window.location.pathname;
+
+    const segments = path.split('/'); 
+    const productId = segments[segments.length - 1];
+    const apiBase = 'http://localhost:3000/api';
+
+    // Fetch product data
+    fetch(`${apiBase}/products/${productId}`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const product = data.data.product;
+            // Fill form with product data
+            document.getElementById('name').value = product.name;
+            document.getElementById('description').value = product.description;
+            document.getElementById('price').value = product.price;
+            document.getElementById('image').value = product.image;
+            document.getElementById('imagePreview').querySelector('img').src = product.image;
+            document.getElementById('imagePreview').querySelector('img').alt = product.name;
+
+            // Create size inputs
+            const sizesContainer = document.getElementById('sizesContainer');
+            const allSizes = [38,39,40,41,42,43,44];
+            
+            allSizes.forEach((size, index) => {
+                const existingSize = product.sizes.find(s => s.size === size);
+                const col = document.createElement('div');
+                col.className = 'col-md-2';
+                col.innerHTML = `
+                    <div class="mb-3">
+                        <label for="size${size}" class="form-label">Size ${size}</label>
+                        <input type="number" class="form-control" id="size${size}" name="sizes[${index}][size]" value="${size}" readonly hidden>
+                        <input type="number" class="form-control" name="sizes[${index}][quantity]" min="0" value="${existingSize ? existingSize.quantity : 0}">
+                    </div>
+                `;
+                sizesContainer.appendChild(col);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching product:', error);
+        showMessage('Có lỗi xảy ra khi tải thông tin sản phẩm', 'danger');
+    });
+
+    // Fetch categories
+    fetch(`${apiBase}/categories`, {
+        headers: {
+            'Authorization': `Bearer ${token}`
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const categorySelect = document.getElementById('category');
+            data.data.categories.forEach(category => {
+                const option = document.createElement('option');
+                option.value = category.name;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
+            });
+
+            // Set selected category after categories are loaded
+            fetch(`${apiBase}/products/${productId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('category').value = data.data.product.category;
+                }
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching categories:', error);
+        showMessage('Có lỗi xảy ra khi tải danh mục', 'danger');
+    });
+
+    // Handle form submission
+    const form = document.getElementById('editProductForm');
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const formData = {
+            name: document.getElementById('name').value,
+            description: document.getElementById('description').value,
+            category: document.getElementById('category').value,
+            price: parseFloat(document.getElementById('price').value),
+            image: document.getElementById('image').value,
+            sizes: []
+        };
+
+        // Get sizes data
+        const sizeInputs = document.querySelectorAll('input[name^="sizes["]');
+        sizeInputs.forEach((input, index) => {
+            if (index % 2 === 1) { // Only process quantity inputs
+                const sizeValue = sizeInputs[index - 1].value;
+                const quantityValue = input.value;
+                formData.sizes.push({
+                    size: parseInt(sizeValue),
+                    quantity: parseInt(quantityValue)
+                });
+            }
+        });
+
+        try {
+            const response = await fetch(`${apiBase}/products/${productId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+            console.log('Response:', data); // Add this line for debugging
+
+            if (data.success) {
+                showMessage('Cập nhật sản phẩm thành công!', 'success');
+                setTimeout(() => {
+                    window.location.href = '/admin/product';
+                }, 1500);
+            } else {
+                showMessage(data.message || 'Có lỗi xảy ra khi cập nhật sản phẩm', 'danger');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            showMessage('Có lỗi xảy ra khi cập nhật sản phẩm', 'danger');
+        }
+    });
+
     // Preview ảnh khi nhập link
     const imageInput = document.getElementById('image');
     const imagePreview = document.getElementById('imagePreview');
@@ -157,4 +284,52 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.value < 0) this.value = 0;
     });
 });
-</script> 
+
+// Function to show message
+function showMessage(message, type = 'success') {
+    const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+    const messageText = document.getElementById('messageText');
+    const modalContent = document.querySelector('#messageModal .modal-content');
+    
+    // Set message
+    messageText.textContent = message;
+    
+    // Set modal style based on type
+    modalContent.className = 'modal-content';
+    if (type === 'success') {
+        modalContent.classList.add('border-success');
+        document.querySelector('#messageModal .modal-header').className = 'modal-header bg-success text-white';
+    } else {
+        modalContent.classList.add('border-danger');
+        document.querySelector('#messageModal .modal-header').className = 'modal-header bg-danger text-white';
+    }
+    
+    // Show modal
+    messageModal.show();
+    
+    // Auto hide after 3 seconds if success
+    if (type === 'success') {
+        setTimeout(() => {
+            messageModal.hide();
+        }, 3000);
+    }
+}
+</script>
+
+<!-- Message Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Thông báo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="messageText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div> 

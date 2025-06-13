@@ -33,7 +33,7 @@ const sendPasswordResetEmail = async (email, resetToken) => {
                             <p>Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.</p>
                             <p>Vui lòng click vào nút bên dưới để đặt lại mật khẩu:</p>
                             <div style="text-align: center; margin: 30px 0;">
-                                <a href="http://localhost:3000/auth/reset-password/${resetToken}"
+                                <a href="http://localhost:5000/auth/reset-password/${resetToken}"
                                    style="background-color: #f44336; 
                                           color: white; 
                                           padding: 12px 30px; 

@@ -165,7 +165,7 @@ class ProductController {
     // [DELETE] /api/products/:id
     async deleteProduct(req, res, next) {
         try {
-            const product = await Product.findById(req.params.id);
+            const product = await Product.findByIdAndDelete(req.params.id);
             
             if (!product) {
                 return res.status(404).json({
@@ -173,8 +173,6 @@ class ProductController {
                     message: 'Product not found'
                 });
             }
-
-            await product.remove();
             
             res.json({
                 success: true,

@@ -23,8 +23,8 @@ router.put('/users/set-default-address', userController.setDefaultAddress);
 
 router.get('/totalusers',userController.totalUsers);
 router.get('/allusers',userController.getAllUsers);
-router.put('/users/:id',userController.setAdmin);
-router.put('/users/:id',userController.setUser);
+router.put('/users/:id/setadmin',userController.setAdmin);
+router.put('/users/:id/setuser',userController.setUser);
 router.delete('/users/:id',userController.deleteUser);
 
 module.exports = router; 

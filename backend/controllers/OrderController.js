@@ -117,8 +117,13 @@ class OrderController {
             const updateStockPromises = cartItems.map(item => {
                 return Product.updateOne(
                     { _id: item.product._id, 'sizes.size': item.size },
-                    { $inc: { 'sizes.$.quantity': -item.quantity } }
-                );
+                    { 
+                        $inc: { 
+                            'sizes.$.quantity': -item.quantity,
+                            sold: item.quantity
+                        }
+                    }
+                )
             });
 
             await Promise.all(updateStockPromises);

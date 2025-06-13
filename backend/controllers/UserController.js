@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const nodemailer = require('nodemailer');
 const { mongooseToObject } = require('../util/mongoose');
 const dotenv = require('dotenv');
+const { sendPasswordResetEmail } = require('../util/mailjet');
 
 dotenv.config();
 
@@ -278,8 +279,8 @@ class UserController {
             user.resetPasswordExpires = Date.now() + 3600000; // 1 giờ
             await user.save();
 
-            // TODO: Gửi email reset password
-            // await sendPasswordResetEmail(email, resetToken);
+            // Gửi email đặt lại mật khẩu bằng mailjet
+            await sendPasswordResetEmail(email, resetToken);
 
             res.json({
                 success: true,
@@ -297,7 +298,6 @@ class UserController {
     async handleResetPassword(req, res, next) {
         try {
             const { token, password } = req.body;
-
             if (!token || !password) {
                 return res.status(400).json({
                     success: false,
@@ -728,7 +728,7 @@ class UserController {
         }
     }
     
-    // Put /api/users/:id
+    // Put /api/users/:id/setadmin
     async setAdmin(req, res, next) {
         try {
             const user = await User.findByIdAndUpdate(req.params.id,{
@@ -743,7 +743,7 @@ class UserController {
         }
     }
     
-    // Put /api/users/:id
+    // Put /api/users/:id/setuser
     async setUser(req, res, next) {
         try {
             const user = await User.findByIdAndUpdate(req.params.id,{
@@ -784,7 +784,7 @@ class UserController {
             await User.findByIdAndDelete(req.params.id);
             res.json({
                 success: true,
-                message: 'User deleted successfully'
+                message: 'Xóa User thành công'
             });
         } catch (err) {
             next(err);

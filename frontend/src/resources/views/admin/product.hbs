@@ -102,6 +102,24 @@
     </div>
 </div>
 
+<!-- Message Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Thông báo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="messageText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 .description-cell {
     max-width: 200px;
@@ -175,6 +193,105 @@
 .form-label {
     margin-bottom: 0.5rem;
     font-weight: 500;
+}
+
+/* Modal Styles */
+.modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    overflow: hidden;
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-content {
+    transform: scale(1);
+}
+
+.modal-header {
+    border: none;
+    padding: 1.5rem;
+    position: relative;
+}
+
+.modal-header.bg-success {
+    background: linear-gradient(45deg, #28a745, #20c997) !important;
+}
+
+.modal-header.bg-danger {
+    background: linear-gradient(45deg, #dc3545, #c82333) !important;
+}
+
+.modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.modal-body {
+    padding: 2rem 1.5rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #444;
+    text-align: center;
+}
+
+.modal-footer {
+    border: none;
+    padding: 1rem 1.5rem;
+    background-color: #f8f9fa;
+}
+
+.modal .btn-close {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    padding: 0.5rem;
+    background-color: rgba(255,255,255,0.2);
+    border-radius: 50%;
+    transition: all 0.3s ease;
+}
+
+.modal .btn-close:hover {
+    background-color: rgba(255,255,255,0.3);
+    transform: rotate(90deg);
+}
+
+.modal .btn-secondary {
+    background: #6c757d;
+    border: none;
+    padding: 0.6rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.modal .btn-secondary:hover {
+    background: #5a6268;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,.1);
+}
+
+/* Animation for modal */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.modal.fade .modal-dialog {
+    transform: scale(0.95);
+    transition: transform 0.3s ease;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
 }
 </style>
 
@@ -347,7 +464,13 @@ $(document).on('click', '.delete-product', function() {
     const productId = $(this).data('id');
     const productName = $(this).data('name');
     
-    if (confirm(`Bạn có chắc chắn muốn xóa sản phẩm "${productName}" không?`)) {
+    // Hiển thị modal xác nhận
+    $('#productName').text(productName);
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    deleteModal.show();
+
+    // Xử lý khi click nút xác nhận xóa
+    $('#confirmDelete').off('click').on('click', function() {
         const token = getCookie('token');
         $.ajax({
             url: `${apiBase}/products/${productId}`,
@@ -359,17 +482,50 @@ $(document).on('click', '.delete-product', function() {
         })
         .done(function(response) {
             if (response.success) {
+                deleteModal.hide();
+                // Hiển thị thông báo thành công
+                showMessage('Xóa sản phẩm thành công!', 'success');
                 // Tải lại dữ liệu sau khi xóa
                 fetchProducts(currentPage, selectedCategory, sort);
             } else {
-                alert(response.message || 'Có lỗi xảy ra khi xóa sản phẩm');
+                showMessage(response.message || 'Có lỗi xảy ra khi xóa sản phẩm', 'danger');
             }
         })
         .fail(function() {
-            alert('Có lỗi xảy ra khi xóa sản phẩm');
+            showMessage('Có lỗi xảy ra khi xóa sản phẩm', 'danger');
         });
-    }
+    });
 });
+
+// Function to show message
+function showMessage(message, type = 'success') {
+    const messageModal = new bootstrap.Modal(document.getElementById('messageModal'));
+    const messageText = document.getElementById('messageText');
+    const modalContent = document.querySelector('#messageModal .modal-content');
+    
+    // Set message
+    messageText.textContent = message;
+    
+    // Set modal style based on type
+    modalContent.className = 'modal-content';
+    if (type === 'success') {
+        modalContent.classList.add('border-success');
+        document.querySelector('#messageModal .modal-header').className = 'modal-header bg-success text-white';
+    } else {
+        modalContent.classList.add('border-danger');
+        document.querySelector('#messageModal .modal-header').className = 'modal-header bg-danger text-white';
+    }
+    
+    // Show modal
+    messageModal.show();
+    
+    // Auto hide after 3 seconds if success
+    if (type === 'success') {
+        setTimeout(() => {
+            messageModal.hide();
+        }, 3000);
+    }
+}
 
 // Thêm tooltip cho các ô mô tả
 $(document).ready(function() {

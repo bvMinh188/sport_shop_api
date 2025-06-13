@@ -80,7 +80,9 @@ $(document).ready(function() {
             const data = await response.json();
 
             if (data.success && data.data.orders) {
-                const orders = data.data.orders;
+                let orders = data.data.orders;
+                // Sắp xếp theo thời gian mới nhất đến cũ nhất
+                orders = orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 const tbody = $('#orders-table-body');
                 tbody.empty();
 
@@ -106,11 +108,7 @@ $(document).ready(function() {
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
-                                        data-bs-target="#detail-order-modal" 
-                                        data-order='{{{json order}}}'>
-                                        Xem
-                                    </button>
+                                    <button class="btn btn-primary btn-sm btn-detail-order" data-id="${order._id}" data-bs-toggle="modal" data-bs-target="#detail-order-modal">Xem</button>
 
                                     ${
                                         order.status === 'chờ xác nhận' ? `
@@ -147,29 +145,6 @@ $(document).ready(function() {
     // Gọi API khi trang load
     fetchOrders();
 
-    // Xử lý khi click nút xóa
-    $(document).on('click', '.delete-order', function() {
-        const orderId = $(this).data('id');
-        
-        if (confirm('Bạn có chắc chắn muốn xóa đơn hàng này không?')) {
-            $.ajax({
-                url: `/admin/order/${orderId}`,
-                type: 'DELETE'
-            })
-            .done(function(response) {
-                if (response.success) {
-                    // Tải lại danh sách đơn hàng
-                    fetchOrders();
-                } else {
-                    alert(response.message || 'Có lỗi xảy ra khi xóa đơn hàng');
-                }
-            })
-            .fail(function() {
-                alert('Có lỗi xảy ra khi xóa đơn hàng');
-            });
-        }
-    });
-
     
 
     // Xử lý nút hủy đơn hàng
@@ -182,6 +157,53 @@ $(document).ready(function() {
             form.action = '/admin/order/' + orderId + '?_method=DELETE';
             form.submit();
         });
+    });
+
+
+    // Hàm render chi tiết đơn hàng vào modal
+    async function showOrderDetail(orderId) {
+        try {
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+            const response = await fetch(`http://localhost:3000/api/orders/${orderId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+            const data = await response.json();
+            if (data.success && data.data.order) {
+                const order = data.data.order;
+                $('#customer-name').text(order.name);
+                $('#customer-phone').text(order.phone);
+                $('#customer-address').text(order.address);
+                $('#order-total').text(order.price);
+                // Render sản phẩm
+                const productsTbody = $('#order-products');
+                productsTbody.empty();
+                order.products.forEach((item, idx) => {
+                    productsTbody.append(`
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td>${item.productName || item.name}</td>
+                            <td>${item.size}</td>
+                            <td>${item.quantity}</td>
+                        </tr>
+                    `);
+                });
+            }
+        } catch (error) {
+            $('#customer-name').text('Lỗi tải dữ liệu');
+            $('#customer-phone').text('');
+            $('#customer-address').text('');
+            $('#order-total').text('');
+            $('#order-products').html('<tr><td colspan="4">Không thể tải chi tiết đơn hàng</td></tr>');
+        }
+    }
+
+    // Bắt sự kiện mở modal chi tiết đơn hàng
+    $(document).on('click', '.btn-detail-order', function() {
+        const orderId = $(this).data('id');
+        showOrderDetail(orderId);
     });
 });
 </script>
@@ -360,7 +382,9 @@ $(document).ready(function() {
             const data = await response.json();
 
             if (data.success && data.data.orders) {
-                const orders = data.data.orders;
+                let orders = data.data.orders;
+                // Sắp xếp theo thời gian mới nhất đến cũ nhất
+                orders = orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 const tbody = $('#orders-table-body');
                 tbody.empty();
 
@@ -386,11 +410,7 @@ $(document).ready(function() {
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" 
-                                        data-bs-target="#detail-order-modal" 
-                                        data-order='{{{json order}}}'>
-                                        Xem
-                                    </button>
+                                    <button class="btn btn-primary btn-sm btn-detail-order" data-id="${order._id}" data-bs-toggle="modal" data-bs-target="#detail-order-modal">Xem</button>
 
                                     ${
                                         order.status === 'chờ xác nhận' ? `
@@ -550,8 +570,6 @@ $(document).ready(function() {
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    alert('Đơn hàng đã được hủy thành công');
-                    // Tải lại danh sách đơn hàng
                     fetchOrders();
                 } else {
                     alert(result.message || 'Có lỗi xảy ra khi hủy đơn hàng');

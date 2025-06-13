@@ -61,16 +61,17 @@
                 }
 
                 $.ajax({
-                    url: "/auth/signup",
+                    url: "http://localhost:3000/api/auth/register",
                     method: "POST",
-                    data: {
+                    contentType: "application/json",
+                    data: JSON.stringify({
                         username: $("#username").val(),
                         email: $("#email").val(),
                         password: $("#password").val(),
                         phone: $("#phone").val()
-                    },
+                    }),
                     success: function(response) {
-                        if (response.message === "success") {
+                        if (response.success) {
                             showMessage("Đăng ký thành công! Đang chuyển hướng...", "success");
                             setTimeout(() => {
                                 window.location.href = "/auth/login";
