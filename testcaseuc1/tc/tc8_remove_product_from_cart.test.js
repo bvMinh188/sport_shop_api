@@ -19,15 +19,16 @@ describe('TC8: Xóa sản phẩm khỏi giỏ hàng', function () {
   it('Xóa sản phẩm khỏi giỏ hàng', async function () {
     await login(driver, 'user@gmail.com', '123');
     
-    // Thêm sản phẩm vào giỏ hàng
-    await driver.get('http://localhost:5000/products/1');
-    await driver.findElement(By.css('button#add-to-cart')).click();
-    
-    // Vào giỏ hàng và xóa sản phẩm
-    await driver.get('http://localhost:5000/cart');
-    await driver.findElement(By.css('button.remove-item')).click();
-    
-    const bodyText = await driver.findElement(By.tagName('body')).getText();
-    expect(bodyText).to.include('Giỏ hàng trống');
+    // Vào giỏ hàng (giả định đã có sản phẩm từ test case 2)
+    await driver.get('http://localhost:5000/cart/show');
+
+    // Đợi cho nút xóa xuất hiện và click
+    const deleteBtn = await driver.wait(until.elementLocated(By.css('.delete-btn')), 5000);
+    await deleteBtn.click();
+
+    // Đợi reload lại và kiểm tra thông báo giỏ hàng trống
+    await driver.wait(until.elementLocated(By.css('.empty-cart')), 5000);
+    const emptyText = await driver.findElement(By.css('.empty-cart h5')).getText();
+    expect(emptyText).to.include('Bạn vẫn chưa chọn sản phẩm nào để mua');
   });
 }); 

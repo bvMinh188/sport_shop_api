@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const createDriver = require('../utils/setup');
 const login = require('../utils/login');
 
-describe('TC10: Thanh toán với thông tin không hợp lệ', function () {
+describe('TC10: Đặt hàng khi không nhập địa chỉ', function () {
   let driver;
   this.timeout(20000);
 
@@ -16,26 +16,24 @@ describe('TC10: Thanh toán với thông tin không hợp lệ', function () {
     if (driver) await driver.quit();
   });
 
-  it('Thanh toán với thông tin không hợp lệ', async function () {
-    await login(driver, 'user@gmail.com', '123');
-    
-    // Thêm sản phẩm vào giỏ hàng
-    await driver.get('http://localhost:5000/products/1');
-    await driver.findElement(By.css('button#add-to-cart')).click();
-    
-    // Vào trang thanh toán
-    await driver.get('http://localhost:5000/checkout');
-    
-    // Điền thông tin không hợp lệ
-    await driver.findElement(By.name('fullName')).sendKeys(''); // Tên trống
-    await driver.findElement(By.name('phone')).sendKeys('123'); // SĐT không hợp lệ
-    await driver.findElement(By.name('address')).sendKeys(''); // Địa chỉ trống
-    
-    // Click nút thanh toán
-    await driver.findElement(By.css('button[type="submit"]')).click();
-    
-    // Kiểm tra thông báo lỗi
-    const bodyText = await driver.findElement(By.tagName('body')).getText();
-    expect(bodyText).to.include('Vui lòng điền đầy đủ thông tin');
+  it('Không cho phép đặt hàng khi không chọn địa chỉ', async function () {
+    await login(driver, 'user2@gmail.com', '123');
+    await driver.get('http://localhost:5000/cart/show');
+
+    // Đợi vài giây để giỏ hàng load sản phẩm từ API
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Click nút đặt hàng khi chưa chọn địa chỉ
+    const orderBtn = await driver.findElement(By.css('#orderForm button[type="submit"]'));
+    await orderBtn.click();
+
+    // Đợi message lỗi xuất hiện
+    await driver.wait(async () => {
+      const msg = await driver.findElement(By.css('.message')).getText();
+      return msg.includes('Vui lòng chọn địa chỉ giao hàng');
+    }, 2000);
+
+    // Dừng lại 3 giây để quan sát thông báo
+    await new Promise(resolve => setTimeout(resolve, 3000));
   });
 }); 

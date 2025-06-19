@@ -242,7 +242,7 @@ class CartController {
             if (quantity > sizeObj.quantity) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Insufficient stock'
+                    message: 'Số lượng sản phẩm không đủ trong kho'
                 });
             }
 

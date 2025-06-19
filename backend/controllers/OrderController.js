@@ -297,7 +297,12 @@ class OrderController {
     // Get /api/allorders
     async getAllOrders(req, res, next) {
         try {
-            const orders = await Order.find({}).lean();
+            const { status } = req.query;
+            let query = {};
+            if (status && status !== 'all') {
+                query.status = status;
+            }
+            const orders = await Order.find(query).lean();
             res.json({
                 success: true,
                 data: { orders }

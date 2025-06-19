@@ -35,6 +35,16 @@
                     </div>
                 </div>
                 <div class="card-body">
+                    <div class="mb-3">
+                        <label for="statusFilter" class="form-label">Lọc theo trạng thái:</label>
+                        <select id="statusFilter" class="form-select" style="width: 200px; display: inline-block;">
+                            <option value="all">Tất cả</option>
+                            <option value="chờ xác nhận">Chờ xác nhận</option>
+                            <option value="đang giao hàng">Đang giao hàng</option>
+                            <option value="đã giao hàng">Đã giao hàng</option>
+                            <option value="đã hủy">Đã hủy</option>
+                        </select>
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover">
                             <thead>
@@ -66,12 +76,14 @@
 <script>
 $(document).ready(function() {
     // Lấy danh sách đơn hàng từ API
-    async function fetchOrders() {
+    async function fetchOrders(status = 'all') {
         try {
-            // Lấy token từ cookie
             const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-            
-            const response = await fetch('http://localhost:3000/api/orders/allorders', {
+            let url = 'http://localhost:3000/api/orders/allorders';
+            if (status && status !== 'all') {
+                url += `?status=${encodeURIComponent(status)}`;
+            }
+            const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
@@ -142,8 +154,14 @@ $(document).ready(function() {
         }
     }
 
-    // Gọi API khi trang load
-    fetchOrders();
+    // Gọi API khi trang load với giá trị mặc định
+    fetchOrders($('#statusFilter').val() || 'all');
+
+    // Thêm sự kiện cho dropdown lọc trạng thái
+    $('#statusFilter').on('change', function() {
+        const selectedStatus = $(this).val();
+        fetchOrders(selectedStatus);
+    });
 
     // Hàm render chi tiết đơn hàng vào modal
     async function showOrderDetail(orderId) {
@@ -430,12 +448,14 @@ $(document).ready(function() {
 <script>
 $(document).ready(function() {
     // Lấy danh sách đơn hàng từ API
-    async function fetchOrders() {
+    async function fetchOrders(status = 'all') {
         try {
-            // Lấy token từ cookie
             const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-            
-            const response = await fetch('http://localhost:3000/api/orders/allorders', {
+            let url = 'http://localhost:3000/api/orders/allorders';
+            if (status && status !== 'all') {
+                url += `?status=${encodeURIComponent(status)}`;
+            }
+            const response = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 },
@@ -506,8 +526,14 @@ $(document).ready(function() {
         }
     }
 
-    // Gọi API khi trang load
-    fetchOrders();
+    // Gọi API khi trang load với giá trị mặc định
+    fetchOrders($('#statusFilter').val() || 'all');
+
+    // Thêm sự kiện cho dropdown lọc trạng thái
+    $('#statusFilter').on('change', function() {
+        const selectedStatus = $(this).val();
+        fetchOrders(selectedStatus);
+    });
 
     // Xử lý nút xác nhận đơn hàng
     $(document).on('click', '.btn-confirm', async function(event) {
