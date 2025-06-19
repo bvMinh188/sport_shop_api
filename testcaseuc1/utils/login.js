@@ -34,8 +34,7 @@ async function login(driver, email, password) {
   // 3. Log lại document.cookie và localStorage để xác nhận
   const docCookie = await driver.executeScript('return document.cookie;');
   const localUser = await driver.executeScript('return localStorage.getItem("user");');
-  console.log('document.cookie sau khi login:', docCookie);
-  console.log('localStorage user sau khi login:', localUser);
+
 }
 
 module.exports = login;
