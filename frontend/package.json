@@ -38,6 +38,7 @@
     "sport_shop": "file:"
   },
   "devDependencies": {
+    "cypress": "^14.5.0",
     "mongoose-delete": "^1.0.2",
     "morgan": "^1.10.0",
     "node-sass": "^9.0.0",

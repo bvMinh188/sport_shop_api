@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", function () {
         adminLogoutBtn.addEventListener("click", function (e) {
             e.preventDefault();
             deleteCookie('token');
+            deleteCookie('userInfo');
             localStorage.removeItem('user');
             window.location.href = "/auth/login";
         });

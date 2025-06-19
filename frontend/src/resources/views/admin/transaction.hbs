@@ -145,21 +145,6 @@ $(document).ready(function() {
     // Gọi API khi trang load
     fetchOrders();
 
-    
-
-    // Xử lý nút hủy đơn hàng
-    $('#delete-order-modal').on('show.bs.modal', function(event) {
-        const button = $(event.relatedTarget);
-        const orderId = button.data('id');
-        const form = document.forms['delete-order-form'];
-        
-        $('#btn-delete-order').off('click').on('click', function() {
-            form.action = '/admin/order/' + orderId + '?_method=DELETE';
-            form.submit();
-        });
-    });
-
-
     // Hàm render chi tiết đơn hàng vào modal
     async function showOrderDetail(orderId) {
         try {
@@ -205,6 +190,83 @@ $(document).ready(function() {
         const orderId = $(this).data('id');
         showOrderDetail(orderId);
     });
+
+    // Xử lý nút hủy đơn hàng
+    let currentOrderId = null;
+
+    $('#delete-order-modal').on('show.bs.modal', function(event) {
+        const button = $(event.relatedTarget);
+        currentOrderId = button.data('id');
+    });
+
+    $('#btn-delete-order').on('click', async function() {
+        if (!currentOrderId) {
+            showError('Không tìm thấy ID đơn hàng');
+            return;
+        }
+
+        try {
+            const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
+            
+            if (!token) {
+                showError('Không tìm thấy token');
+                return;
+            }
+
+            const response = await fetch(`http://localhost:3000/api/orders/${currentOrderId}/cancel`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                },
+                credentials: 'include'
+            });
+
+            const result = await response.json();
+
+            if (response.ok && result.success) {
+                showSuccess('Đơn hàng đã được hủy thành công');
+                // Đóng modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('delete-order-modal'));
+                modal.hide();
+                // Tải lại danh sách đơn hàng
+                await fetchOrders();
+                // Reset currentOrderId
+                currentOrderId = null;
+            } else {
+                showError(result.message || 'Có lỗi xảy ra khi hủy đơn hàng');
+            }
+        } catch (error) {
+            showError('Có lỗi xảy ra khi hủy đơn hàng: ' + error.message);
+        }
+    });
+
+    // Hàm hiển thị thông báo thành công
+    function showSuccess(message) {
+        const alertContainer = $('.alert-container');
+        const alert = alertContainer.find('.alert');
+        alert.removeClass('alert-danger').addClass('alert-success');
+        alert.find('.message').text(message);
+        alertContainer.show();
+        
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+            alertContainer.hide();
+        }, 3000);
+    }
+
+    // Hàm hiển thị thông báo lỗi
+    function showError(message) {
+        const alertContainer = $('.alert-container');
+        const alert = alertContainer.find('.alert');
+        alert.removeClass('alert-success').addClass('alert-danger');
+        alert.find('.message').text(message);
+        alertContainer.show();
+        
+        // Tự động ẩn sau 3 giây
+        setTimeout(() => {
+            alertContainer.hide();
+        }, 3000);
+    }
 });
 </script>
 
@@ -544,40 +606,5 @@ $(document).ready(function() {
             alertContainer.hide();
         }, 3000);
     }
-
-    // Xử lý nút hủy đơn hàng
-    $('#delete-order-modal').on('show.bs.modal', function(event) {
-        const button = $(event.relatedTarget);
-        const orderId = button.data('id');
-        
-        $('#btn-delete-order').off('click').on('click', async function() {
-            try {
-                const token = document.cookie.split('; ').find(row => row.startsWith('token='))?.split('=')[1];
-                
-                if (!token) {
-                    alert('Không tìm thấy token');
-                    return;
-                }
-
-                const response = await fetch(`http://localhost:3000/api/orders/${orderId}/cancel`, {
-                    method: 'PUT',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    },
-                    credentials: 'include'
-                });
-
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    fetchOrders();
-                } else {
-                    alert(result.message || 'Có lỗi xảy ra khi hủy đơn hàng');
-                }
-            } catch (error) {
-                alert('Có lỗi xảy ra khi hủy đơn hàng: ' + error.message);
-            }
-        });
-    });
 });
 </script>

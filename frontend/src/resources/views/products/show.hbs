@@ -450,7 +450,9 @@
             const token = getCookie('token');
             if (!token) {
                 showMessage("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng!", "error");
-                window.location.href = '/auth/login';
+                setTimeout(() => {
+                    window.location.href = '/auth/login';
+                }, 1500);
                 return;
             }
 
@@ -515,12 +517,9 @@
         }
 
         $("#quantity").on("input", function() {
-        const max = $(this).attr("max");
         let val = parseInt($(this).val());
 
-        if (val > max) {
-            $(this).val(max);
-        } else if (val < 1 || isNaN(val)) {
+        if (val < 1 || isNaN(val)) {
             $(this).val(1);
         }
     });
@@ -531,7 +530,6 @@
         document.getElementById("size").value = size;
 
         const quantityInput = document.getElementById("quantity");
-        quantityInput.max = quantity;
         quantityInput.value = 1;
     }
 </script>

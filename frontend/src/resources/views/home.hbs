@@ -87,7 +87,7 @@
                                 <span class="current-price">${formatPrince(product.price)}</span>
                                 ${product.originalPrice ? `<span class="original-price">${formatPrince(product.originalPrice)}</span>` : ''}
                             </div>
-                            <div class="sold-count">Đã bán: ${product.sold}</div>
+                            <div class="sold-count">Đã bán: ${product.sold ||0 } </div>
                         </div>
                     </div>
                 </div>`;

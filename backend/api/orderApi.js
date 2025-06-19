@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const orderController = require('../controllers/OrderController');
-// const authMiddleware = require('../middleware/auth')
+const authMiddleware = require('../middleware/auth')
 
 // Customer routes
 router.get('/orders/allorders',orderController.getAllOrders);
-router.post('/orders', orderController.createOrder);
-router.get('/orders', orderController.getOrders);
+router.post('/orders',authMiddleware.verifyToken, orderController.createOrder);
+router.get('/orders',authMiddleware.verifyToken, orderController.getOrders);
 router.get('/orders/:id', orderController.getOrderById);
 
 // Admin routes

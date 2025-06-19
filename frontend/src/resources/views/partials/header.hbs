@@ -84,6 +84,7 @@ $(document).ready(function() {
     renderUserNav();
     $(document).on('click', '#logout-btn', function() {
         deleteCookie('token');
+        deleteCookie('userInfo');
         localStorage.removeItem('user');
         renderUserNav();
         window.location.href = '/auth/login';

@@ -69,7 +69,8 @@
                             // Lưu token vào cookie (1 ngày)
                             setCookie('token', response.data.token, 1);
                             
-                            // Lưu thông tin user vào localStorage (không lưu token)
+                            // Lưu thông tin user vào cookie và localStorage
+                            setCookie('userInfo', JSON.stringify(response.data.user), 1);
                             localStorage.setItem('user', JSON.stringify(response.data.user));
                             
                             showMessage(response.message, "success");

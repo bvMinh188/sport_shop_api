@@ -421,20 +421,6 @@
 
                             const data = await response.json();
 
-                            if (!response.ok) {
-                                const errorMessage = data.message || 'Có lỗi xảy ra khi hủy đơn hàng';
-                                console.error('API Response:', data);
-                                
-                                if (data.message === 'Order not found') {
-                                    showMessage('Đơn hàng không tồn tại hoặc không thuộc về bạn', 'error');
-                                } else if (data.message === 'Order cannot be cancelled') {
-                                    showMessage('Không thể hủy đơn hàng đã được xác nhận hoặc đang giao hàng', 'error');
-                                } else {
-                                    showMessage(errorMessage, 'error');
-                                }
-                                return;
-                            }
-
                             if (data.success) {
                                 showMessage('Đã hủy đơn hàng thành công', 'success');
                                 // Reload orders list
@@ -456,7 +442,7 @@
             } catch (error) {
                 console.error('Error loading orders:', error);
                 showMessage('Error loading orders', 'error');
-                }
+            }
         }
 
         // Profile form handling
@@ -543,36 +529,6 @@
                 });
                 saveButtonContainer.style.display = 'none';
                 editButton.style.display = 'inline-block';
-            }
-        });
-
-        // Order cancellation handling
-        document.getElementById('btn-delete-order').addEventListener('click', async function() {
-            if (!selectedOrderId) return;
-
-            this.disabled = true;
-            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Đang hủy...';
-
-            try {
-                const response = await fetch(`/api/orders/${selectedOrderId}/cancel`, {
-                    method: 'PUT'
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showMessage('Hủy đơn hàng thành công', 'success');
-                    $('#delete-order-modal').modal('hide');
-                    loadOrders();
-                } else {
-                    showMessage(result.message || 'Có lỗi xảy ra khi hủy đơn hàng', 'error');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                showMessage('Error cancelling order', 'error');
-            } finally {
-                this.disabled = false;
-                this.innerHTML = 'Có';
             }
         });
 

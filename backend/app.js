@@ -32,6 +32,7 @@ app.use(cookieParser());
 app.use(morgan("combined"));
 
 // API Routes
+
 app.use('/api',  userApi);
 app.use('/api', productApi);
 app.use('/api', categoryApi);
