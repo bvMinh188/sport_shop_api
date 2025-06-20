@@ -57,6 +57,12 @@ app.use((req, res) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-});
+// Chỉ khởi động server khi file này được chạy trực tiếp
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}
+
+// Xuất ra app để các file khác (như file test) có thể sử dụng
+module.exports = app;

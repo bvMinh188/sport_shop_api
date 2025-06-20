@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/UserController');
 const authMiddleware = require('../middleware/auth');
+
 // Public routes (không cần authentication)
 router.post('/auth/register', userController.signUp);
 router.post('/auth/login', userController.logined);
