@@ -7,26 +7,20 @@ describe('TC1: Thêm sản phẩm vào giỏ hàng khi chưa đăng nhập', fun
   this.timeout(30000);
 
   before(async function () {
-    console.log('Đang mở Chrome browser...');
     driver = await createDriver();
-    console.log('Chrome đã mở thành công!');
     await driver.get('http://localhost:5000');
-    console.log('Đã mở trang chủ');
     // Chờ 2 giây để có thể thấy
     await new Promise(resolve => setTimeout(resolve, 2000));
   });
 
   after(async function () {
     if (driver) {
-      console.log('Đang đóng Chrome...');
       await driver.quit();
-      console.log('Đã đóng Chrome');
     }
   });
 
   it('Thêm sản phẩm vào giỏ hàng khi chưa đăng nhập', async function () {
-    console.log('Đang mở trang sản phẩm...');
-    await driver.get('http://localhost:5000/products/6737064d8e4584ab5f6e1a2b');
+    await driver.get('http://localhost:5000/products/673705fc8e4584ab5f6e1905');
     await new Promise(resolve => setTimeout(resolve, 2000));
 
     // Chọn size còn hàng đầu tiên
@@ -53,6 +47,5 @@ describe('TC1: Thêm sản phẩm vào giỏ hàng khi chưa đăng nhập', fun
     // Kiểm tra nội dung trang login
     const bodyText = await driver.findElement(By.tagName('body')).getText();
     expect(bodyText.toLowerCase()).to.include('đăng nhập');
-    console.log('Test case hoàn thành thành công!');
   });
 }); 

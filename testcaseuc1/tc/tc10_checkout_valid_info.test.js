@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const createDriver = require('../utils/setup');
 const login = require('../utils/login');
 
-describe('TC9: Đặt hàng với giỏ hàng trống', function () {
+describe('TC10: Đặt hàng với giỏ hàng trống', function () {
   let driver;
   this.timeout(20000);
 

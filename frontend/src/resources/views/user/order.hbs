@@ -527,7 +527,23 @@ $(document).ready(function(){
         const address = $('#newAddress').val().trim();
         const setAsDefault = $('#setAsDefault').is(':checked');
 
-        if (!newAddress) {
+        if (!name) {
+            showMessage('Vui lòng nhập tên người nhận', 'error');
+            return;
+        }
+
+        if (!phone) {
+            showMessage('Vui lòng nhập số điện thoại', 'error');
+            return;
+        }
+
+        const phoneRegex = /^(0[3|5|7|8|9])+([0-9]{8})$/;
+        if (!phoneRegex.test(phone)) {
+            showMessage('Số điện thoại không hợp lệ. Vui lòng nhập đúng định dạng.', 'error');
+            return;
+        }
+
+        if (!address) {
             showMessage('Vui lòng nhập địa chỉ chi tiết', 'error');
             return;
         }
@@ -559,15 +575,18 @@ $(document).ready(function(){
                 throw new Error(errorData.message || 'Có lỗi xảy ra');
             }
 
-            // Reload the page after successful addition
-            window.location.href = '/cart/show';
+            // Thông báo thành công và chuyển trang sau 1 giây
+            showMessage('Thêm địa chỉ thành công', 'success');
+            setTimeout(() => {
+                window.location.href = '/cart/show';
+            }, 1000);
         } catch (error) {
             console.error('Error adding address:', error);
             showMessage(error.message || 'Có lỗi xảy ra khi thêm địa chỉ', 'error');
         } finally {
-                saveButton.prop('disabled', false).text('Hoàn thành');
-                window.location.href = '/cart/show';
-            }
+            saveButton.prop('disabled', false).text('Hoàn thành');
+            // Đã chuyển trang ở trên, không cần chuyển trang ở finally nữa
+        }
     });
 
     $(document).on('click', '.select-address', function() {

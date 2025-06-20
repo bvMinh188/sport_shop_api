@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const createDriver = require('../utils/setup');
 const login = require('../utils/login');
 
-describe('TC8: Xóa sản phẩm khỏi giỏ hàng', function () {
+describe('TC9: Xóa sản phẩm khỏi giỏ hàng', function () {
   let driver;
   this.timeout(20000);
 
@@ -25,6 +25,9 @@ describe('TC8: Xóa sản phẩm khỏi giỏ hàng', function () {
     // Đợi cho nút xóa xuất hiện và click
     const deleteBtn = await driver.wait(until.elementLocated(By.css('.delete-btn')), 5000);
     await deleteBtn.click();
+
+    // Dừng 3 giây để quan sát giao diện sau khi xóa
+    await driver.sleep(3000);
 
     // Đợi reload lại và kiểm tra thông báo giỏ hàng trống
     await driver.wait(until.elementLocated(By.css('.empty-cart')), 5000);

@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const createDriver = require('../utils/setup');
 const login = require('../utils/login');
 
-describe('TC10: Đặt hàng khi không nhập địa chỉ', function () {
+describe('TC11: Đặt hàng khi chưa nhập địa chỉ', function () {
   let driver;
   this.timeout(20000);
 
@@ -17,7 +17,7 @@ describe('TC10: Đặt hàng khi không nhập địa chỉ', function () {
   });
 
   it('Không cho phép đặt hàng khi không chọn địa chỉ', async function () {
-    await login(driver, 'user2@gmail.com', '123');
+    await login(driver, 'user4@gmail.com', '123');
     await driver.get('http://localhost:5000/cart/show');
 
     // Đợi vài giây để giỏ hàng load sản phẩm từ API

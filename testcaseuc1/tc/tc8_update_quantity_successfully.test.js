@@ -3,7 +3,7 @@ const { expect } = require('chai');
 const createDriver = require('../utils/setup');
 const login = require('../utils/login');
 
-describe('TC7: Cập nhật số lượng vượt quá tồn kho', function () {
+describe('TC8: Cập nhật số lượng sản phẩm trong giỏ hàng thành công', function () {
   let driver;
   this.timeout(20000);
 
@@ -16,43 +16,47 @@ describe('TC7: Cập nhật số lượng vượt quá tồn kho', function () {
     if (driver) await driver.quit();
   });
 
-  it('Cập nhật số lượng vượt quá tồn kho', async function () {
+  it('Cập nhật số lượng thành công với giá trị hợp lệ', async function () {
     try {
-      // Login với tài khoản user
+      // Đăng nhập, giả định sản phẩm đã có trong giỏ hàng
       await login(driver, 'user@gmail.com', '123');
-      
-      // Vào trang giỏ hàng (giả định sản phẩm đã được thêm từ TC2)
-      await driver.get('http://localhost:5000/cart/show');
 
-      // Đợi cho bảng giỏ hàng hiển thị
+      // Vào trang giỏ hàng
+      await driver.get('http://localhost:5000/cart/show');
       await driver.wait(until.elementLocated(By.css('table')), 5000);
 
-      // Click nút Sửa để hiện input số lượng
+      // Click nút Sửa
       const editBtn = await driver.findElement(By.css('.edit-btn'));
       await editBtn.click();
-      await new Promise(resolve => setTimeout(resolve, 300)); // Đợi UI cập nhật
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Đợi cho input số lượng hiện ra và nhập số lượng lớn
+      // Nhập số lượng mới hợp lệ
       const qtyInput = await driver.wait(until.elementLocated(By.css('.quantity-input')), 5000);
       await qtyInput.clear();
-      await qtyInput.sendKeys('999');
+      await qtyInput.sendKeys('2');
 
       // Click nút Cập nhật
       const updateBtn = await driver.findElement(By.css('.update-btn'));
       await updateBtn.click();
 
-      // Đợi và kiểm tra thông báo lỗi - sử dụng message chính xác từ API
+      // Đợi và kiểm tra thông báo thành công
       await driver.wait(async () => {
         const messageElem = await driver.findElement(By.css('.message'));
         const messageText = await messageElem.getText();
-        return messageText.includes('Số lượng sản phẩm không đủ trong kho');
-      }, 5000, 'Không thấy thông báo lỗi về số lượng không đủ trong kho');
+        return messageText.includes('Cập nhật số lượng thành công');
+      }, 5000, 'Không thấy thông báo cập nhật thành công');
+
+      // Đợi trang tải lại và kiểm tra số lượng mới
+      await driver.wait(until.stalenessOf(qtyInput), 5000);
+      const newQuantitySpan = await driver.findElement(By.css('.quantity'));
+      const newQuantity = await newQuantitySpan.getText();
+      expect(newQuantity).to.equal('2');
 
       // Dừng 3 giây để quan sát thông báo
       await new Promise(resolve => setTimeout(resolve, 3000));
 
     } catch (e) {
-      console.error('Lỗi khi chạy test TC7:', e);
+      console.error('Lỗi khi chạy test TC8:', e);
       throw e;
     }
   });
